@@ -200,8 +200,6 @@ export default function ProviderDashboard() {
         </div>
       </div>
 
-      <p role="note" className="provider-synthetic">Hackathon prototype · Synthetic data only · Confirmations are enquiries, not bookings, payments or stock reservations.</p>
-
       {notice ? (
         <div className="provider-notice" role="status">
           <span>{notice}</span>

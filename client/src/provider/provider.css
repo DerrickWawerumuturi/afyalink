@@ -23,14 +23,6 @@
   font-size: .875rem;
 }
 
-.provider-synthetic {
-  margin: 1rem 0;
-  padding: .65rem .8rem;
-  border-left: 4px solid #b7791f;
-  background: #fff8e8;
-  font-size: .875rem;
-}
-
 .provider-notice,
 .provider-error {
   margin: 0 0 1rem;
