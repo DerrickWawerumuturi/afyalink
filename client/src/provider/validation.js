@@ -1,6 +1,7 @@
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MONEY_PATTERN = /^\d+(?:\.\d{1,2})?$/;
 const WHOLE_NUMBER_PATTERN = /^\d+$/;
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export function formatKes(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
@@ -42,7 +43,23 @@ export function effectiveStatus(request, now = Date.now()) {
   return status;
 }
 
-export function validateListingInput(input, catalog = []) {
+export function isStale(value, maxAgeMs = STALE_AFTER_MS, now = Date.now()) {
+  if (!value) return true;
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return true;
+  return now - time > maxAgeMs;
+}
+
+export function validateProfileInput(input) {
+  const errors = {};
+  const name = String(input.name || '').trim();
+  const location = String(input.location || '').trim();
+  if (name.length < 2 || name.length > 80) errors.name = 'Enter a provider name of 2 to 80 characters.';
+  if (location.length < 2 || location.length > 80) errors.location = 'Enter a location of 2 to 80 characters.';
+  return { errors, value: { name, location } };
+}
+
+export function validateListingInput(input, catalog = [], providerType) {
   const errors = {};
   const itemId = String(input.item_id || '');
   const price = parseMoney(input.price);
@@ -56,6 +73,8 @@ export function validateListingInput(input, catalog = []) {
   if (price === null) errors.price = 'Enter a non-negative price with at most two decimals.';
   if (!pricingUnit || pricingUnit.length > 40) errors.pricing_unit = 'Enter a pricing unit of at most 40 characters.';
   if (stockText !== '' && stock === null) errors.stock_quantity = 'Stock must be a non-negative whole number.';
+  if (item && providerType === 'hospital' && item.type === 'medication') errors.item_id = 'Hospitals list healthcare services only.';
+  if (item && providerType === 'pharmacy' && item.type === 'service') errors.item_id = 'Pharmacies list medications only.';
   if (item && item.type === 'medication' && pricingUnit.toLowerCase() !== String(item.unit || '').toLowerCase()) {
     errors.pricing_unit = `Medication pricing unit must be ${item.unit}.`;
   }
