@@ -7,6 +7,11 @@ import providerRequestsRouter from './providerRequests.js';
 const router = Router();
 
 router.use(requireAuth, requireProvider);
+
+router.get('/profile', (request, response) => {
+  response.json({ data: request.provider });
+});
+
 router.use(providerListingsRouter);
 router.use(providerRequestsRouter);
 

@@ -51,6 +51,16 @@ Insufficient stock or unavailable items are missing. For partial options, `compl
 
 `GET /requests/:id`: only the creating patient; same data shape. Compute effective expired state on read if expiry has passed. Repeated submission creates a separate enquiry; client disables double-submit while in flight. Add idempotency before real deployment.
 
+## Provider profile
+
+`GET /provider/profile`: authenticated provider member. Returns the trusted provider record:
+
+```json
+{"data":{"id":"10000000-0000-4000-8000-000000000001","name":"Demo Afya Hospital","type":"hospital","location":"Nairobi","verified":false}}
+```
+
+Type and verification are controlled by trusted setup, not user-editable metadata. Profile editing is outside the MVP.
+
 ## Provider listings
 
 `GET /provider/listings?page=1&limit=20`: paginated listing shape above, scoped to authenticated provider membership.

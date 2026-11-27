@@ -90,7 +90,14 @@ export function loadCatalog() {
 
 export async function loadProfile() {
   if (demoMode) return { data: demoGetProfile(), source: 'demo' };
-  return { data: null, source: 'api' };
+  try {
+    const payload = await api('/provider/profile');
+    return { data: payload.data, source: 'api', notice: '' };
+  } catch (error) {
+    if (!canUseDemo(error)) throw error;
+    demoMode = true;
+    return { data: demoGetProfile(), source: 'demo', notice: demoNotice(error) };
+  }
 }
 
 export function listDemoProviders() {

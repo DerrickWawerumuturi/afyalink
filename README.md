@@ -27,7 +27,7 @@ Stretch: compare a whole synthetic prescription and add service + medication + m
 - One React application built with Vite: patient pages and provider dashboard with shared navigation.
 - One Node.js / Express API: input validation with Zod, CORS and PostgreSQL access through `pg`.
 - Supabase-hosted PostgreSQL: one shared schema and synthetic seed dataset.
-- Supabase Auth is the planned identity provider for patient and provider demo accounts. Add its SDK only when implementing auth.
+- Supabase Auth provides patient and provider demo accounts. The client uses `@supabase/supabase-js` with the public project URL and anon/publishable key; Express verifies bearer tokens server-side.
 
 Flow: React → Express `/api` → PostgreSQL. The browser never receives database credentials or privileged Supabase keys. Express owns business rules and checks authenticated ownership on every private operation. Database access is wired through the `pg` pool; `/api/health` reports process health only.
 
@@ -102,6 +102,7 @@ The server implements the routes below; details, examples, errors and authorizat
 | POST | `/api/compare` | Compare an exact synthetic basket across providers |
 | POST | `/api/requests` | Authenticated patient creates a confirmation enquiry |
 | GET | `/api/requests/:id` | Patient reads their own enquiry |
+| GET | `/api/provider/profile` | Provider reads its own trusted profile |
 | GET / POST | `/api/provider/listings` | Provider lists/creates its own offerings |
 | PATCH | `/api/provider/listings/:id` | Provider updates its own offering |
 | DELETE | `/api/provider/listings/:id` | Provider removes its own offering |
@@ -126,7 +127,7 @@ npm run dev:client
 
 Open `http://localhost:5173`; provider shell is `/#/provider`. Check `http://localhost:5000/api/health`. If port 5000 is occupied, set `PORT=5055` in `server/.env` and update `VITE_API_URL` to match. `npm run build` builds the React client. There is one root npm workspace lockfile; run dependency changes from the repo root and commit it with package changes.
 
-Client environment: `VITE_API_URL=http://localhost:5000/api`. Every `VITE_` value is public. Server environment: `PORT=5000`, `CLIENT_URL=http://localhost:5173`, `DATABASE_URL=`. Leave the database URL empty for shell development; Dev 2 obtains the connection string privately from the Supabase dashboard and configures TLS with certificate verification. No privileged Supabase key is needed by the initial `pg` architecture. Authentication configuration will be added with its implementation.
+Client environment: `VITE_API_URL=http://localhost:5000/api`, plus `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (public project URL and anon/publishable key) for sign-in. Every `VITE_` value is public. Server environment: `PORT=5000`, `CLIENT_URL=http://localhost:5173,http://127.0.0.1:5173` (comma-separated allowed origins), `DATABASE_URL=`, `SUPABASE_URL=`, `SUPABASE_ANON_KEY=`. Leave the database URL empty for shell development; use the least-privilege `afyalink_api` connection string privately and keep TLS verification on. No privileged Supabase secret key is used by the Express server.
 
 Database setup is implemented: the migration, least-privilege database role, RLS policies and synthetic seed are in `supabase/`, with exact local/hosted commands in `supabase/README.md`. A local stack and a hosted development project are provisioned; no production resources exist. Keep the Supabase CLI version and target environment explicit before applying migrations.
 
