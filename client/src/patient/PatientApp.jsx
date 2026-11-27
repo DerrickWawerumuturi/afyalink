@@ -35,6 +35,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import "./patient.css";
 import { ServicesPage, MedicinesPage } from "./PatientJourneys";
+import BookAppointmentButton from "./BookAppointmentButton.jsx";
+import Appointments from "./Appointments.jsx";
 const money = (n) => "KES " + n.toLocaleString("en-KE");
 const label = (i) =>
   [i.name, i.strength, i.dosage_form].filter(Boolean).join(" ");
@@ -148,7 +150,7 @@ function Home({ send }) {
         <div className="home-search"><Finder onSearch={setQuery} /><p className="home-disclosure">Prices are estimates until confirmed</p></div>
       </div>
 
-      {query && <section id="quick-results" className="quick-results" aria-live="polite"><h2>{query.type === 'medication' ? 'Medication' : 'Medical service'} results {query.q && `for ${query.q}`}</h2><p>In {query.area} · Prices and availability are provider-reported.</p>{loading ? <p>Searching…</p> : searchError ? <p role="alert">{searchError}</p> : results.length ? results.map(row => <article key={row.id} className="quick-result"><div><span>{label(row.item)}</span><h3><Link to={'/facility/' + row.provider.id}>{row.provider.name}</Link></h3><p>{row.provider.location} · {row.available && row.stock_quantity !== 0 ? 'Reported available' : 'Unavailable'}</p><small>Updated {new Date(row.updated_at).toLocaleString('en-KE', { timeZone:'Africa/Nairobi' })} EAT</small></div><div><strong>{money(row.price)}</strong><p>Estimate per {row.pricing_unit}</p><button disabled={!row.available || row.stock_quantity === 0} onClick={() => send([{listing_id:row.id, quantity:1}])}>Request confirmation</button></div></article>) : <p>No matches. Try another term or location.</p>}{query.type === 'medication' && <Link to={'/medicines?' + new URLSearchParams({q:query.q, area:query.area})}>Compare a complete prescription <ArrowRight /></Link>}</section>}
+      {query && <section id="quick-results" className="quick-results" aria-live="polite"><h2>{query.type === 'medication' ? 'Medication' : 'Medical service'} results {query.q && `for ${query.q}`}</h2><p>In {query.area} · Prices and availability are provider-reported.</p>{loading ? <p>Searching…</p> : searchError ? <p role="alert">{searchError}</p> : results.length ? results.map(row => <article key={row.id} className="quick-result"><div><span>{label(row.item)}</span><h3><Link to={'/facility/' + row.provider.id}>{row.provider.name}</Link></h3><p>{row.provider.location} · {row.available && row.stock_quantity !== 0 ? 'Reported available' : 'Unavailable'}</p><small>Updated {new Date(row.updated_at).toLocaleString('en-KE', { timeZone:'Africa/Nairobi' })} EAT</small></div><div><strong>{money(row.price)}</strong><p>Estimate per {row.pricing_unit}</p><button disabled={!row.available || row.stock_quantity === 0} onClick={() => send([{listing_id:row.id, quantity:1}])}>Request confirmation</button>{row.item?.type === 'service' ? <BookAppointmentButton listing={row} compact /> : null}</div></article>) : <p>No matches. Try another term or location.</p>}{query.type === 'medication' && <Link to={'/medicines?' + new URLSearchParams({q:query.q, area:query.area})}>Compare a complete prescription <ArrowRight /></Link>}</section>}
     </div>
   );
 }
@@ -181,6 +183,7 @@ function Listing({ row, send }) {
         >
           Request confirmation
         </button>
+        {row.item?.type === "service" ? <BookAppointmentButton listing={row} compact /> : null}
       </div>
     </article>
   );
@@ -308,6 +311,7 @@ function Layout() {
           <Route path="/services" element={<ServicesPage send={send} />} />
           <Route path="/medicines" element={<MedicinesPage send={send} />} />
           <Route path="/facility/:id" element={<Facility send={send} />} />
+          <Route path="/appointments" element={<Appointments />} />
           <Route path="/requests" element={<Tracking />} />
           <Route path="*" element={<Link to="/">Return to Find care</Link>} />
         </Routes>}

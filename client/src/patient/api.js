@@ -82,4 +82,22 @@ export async function requests() {
   const saved = JSON.parse(localStorage.getItem(key) || '[]');
   return Promise.all(saved.map(async entry => ({ ...(await call(`/requests/${encodeURIComponent(entry.id)}`, {auth:true})).data, listing:entry.listing })));
 }
+export async function bookAppointment({ listing_id, requested_for, notes }) {
+  const body = { listing_id, requested_for };
+  if (notes && notes.trim()) body.notes = notes.trim();
+  const result = await call('/appointments', { method: 'POST', auth: true, body });
+  return result.data;
+}
+export async function appointments() {
+  const result = await call('/appointments', { auth: true });
+  return Array.isArray(result.data) ? result.data : [];
+}
+export async function cancelAppointment(id) {
+  const result = await call(`/appointments/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    auth: true,
+    body: { status: 'cancelled' },
+  });
+  return result.data;
+}
 export function simulateReply(id) { if (source !== 'demo') throw new Error('Simulated confirmations are only available in demo mode.'); return demo.simulateReply(id); }

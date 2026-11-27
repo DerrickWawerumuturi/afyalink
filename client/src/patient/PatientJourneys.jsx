@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, MapPin, Search, Plus, Trash2, Check, ArrowUpRight } from 'lucide-react';
 import { catalog, search, compare, detail } from './api';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import BookAppointmentButton from './BookAppointmentButton.jsx';
 import './patient-journeys.css';
 
 const money = n => 'KES ' + n.toLocaleString('en-KE');
@@ -15,7 +16,7 @@ function Intro({ eyebrow, title, children }) {
 }
 function Status({ available, children }) { return <span className={'journey-status ' + (available ? 'is-available' : 'is-unavailable')}><span aria-hidden="true" />{children}</span>; }
 function ServiceCard({ row, send }) {
-  return <article className="journey-card"><div className="journey-card-main"><div className="journey-card-top"><span className="journey-category">{label(row.item)}</span><Status available={row.available}>{row.available ? 'Reported available' : 'Unavailable'}</Status></div><h3><Link to={'/facility/' + row.provider.id}>{row.provider.name} <ArrowUpRight aria-hidden="true" /></Link></h3><p className="journey-location"><MapPin aria-hidden="true" /> {row.provider.location}</p><p className="journey-updated">Updated {new Date(row.updated_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} EAT</p></div><div className="journey-price"><span>ESTIMATED PRICE</span><strong>{money(row.price)}</strong><p>per {row.pricing_unit} · not yet confirmed</p><button disabled={!row.available} onClick={() => send([{listing_id:row.id, quantity:1}])}>Request confirmation <ArrowRight aria-hidden="true" /></button></div></article>;
+  return <article className="journey-card"><div className="journey-card-main"><div className="journey-card-top"><span className="journey-category">{label(row.item)}</span><Status available={row.available}>{row.available ? 'Reported available' : 'Unavailable'}</Status></div><h3><Link to={'/facility/' + row.provider.id}>{row.provider.name} <ArrowUpRight aria-hidden="true" /></Link></h3><p className="journey-location"><MapPin aria-hidden="true" /> {row.provider.location}</p><p className="journey-updated">Updated {new Date(row.updated_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })} EAT</p></div><div className="journey-price"><span>ESTIMATED PRICE</span><strong>{money(row.price)}</strong><p>per {row.pricing_unit} · not yet confirmed</p><button disabled={!row.available} onClick={() => send([{listing_id:row.id, quantity:1}])}>Request confirmation <ArrowRight aria-hidden="true" /></button><BookAppointmentButton listing={row} compact /></div></article>;
 }
 export function ServicesPage({ send }) {
   const [params, setParams] = useSearchParams(), q = params.get('q') || '', area = params.get('area') || 'Nairobi', [rows, setRows] = useState([]), [error, setError] = useState('');
