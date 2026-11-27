@@ -93,6 +93,13 @@ test('profile validation requires a name and location', () => {
   assert.match(validation.validateProfileInput({ name: '', location: 'Nairobi' }).errors.name, /2 to 80/);
 });
 
+test('page count handles empty, partial and invalid page sizes', () => {
+  assert.equal(validation.pageCount(0, 20), 1);
+  assert.equal(validation.pageCount(21, 20), 2);
+  assert.equal(validation.pageCount(40, 20), 2);
+  assert.equal(validation.pageCount(10, 0), 1);
+});
+
 test('demo provider switching scopes listings and requests', () => {
   fixtures.demoReset();
   const hospitalListings = fixtures.demoListings();
