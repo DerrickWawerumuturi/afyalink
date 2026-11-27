@@ -5,6 +5,8 @@ import { ApiError } from './errors.js';
 import { closePool } from './db/pool.js';
 import listingsRouter from './routes/listings.js';
 import compareRouter from './routes/compare.js';
+import requestsRouter from './routes/requests.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
@@ -16,6 +18,7 @@ app.get('/api/health', (_request, response) =>
 
 app.use('/api', listingsRouter);
 app.use('/api', compareRouter);
+app.use('/api', requireAuth, requestsRouter);
 
 app.use((_request, response) =>
   response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not implemented' } }),
