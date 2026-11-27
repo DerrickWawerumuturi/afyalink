@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ConfirmationDialog from './ConfirmationDialog.jsx';
+import Pager from './Pager.jsx';
 import { effectiveStatus, formatKes, formatTimestamp, isStale, toDateTimeLocal, validateResponseInput } from './validation.js';
 
 const FILTERS = ['all', 'pending', 'confirmed', 'declined', 'expired'];
@@ -22,7 +23,7 @@ function itemDetail(request) {
   return [item.strength, item.dosage_form, item.unit].filter(Boolean).join(' · ');
 }
 
-export default function RequestInbox({ requests, busy, onRespond }) {
+export default function RequestInbox({ requests, busy, meta, onPageChange, onRespond }) {
   const [filter, setFilter] = useState('all');
   const [drafts, setDrafts] = useState({});
   const [errors, setErrors] = useState({});
@@ -95,7 +96,7 @@ export default function RequestInbox({ requests, busy, onRespond }) {
             const draft = draftFor(request);
             const requestErrors = errors[request.id] || {};
             const detail = itemDetail(request);
-            const stale = isStale(request.listing?.updated_at);
+            const stale = Boolean(request.listing?.updated_at) && isStale(request.listing.updated_at);
 
             return (
               <li key={request.id} className="provider-request">
@@ -109,7 +110,7 @@ export default function RequestInbox({ requests, busy, onRespond }) {
                   <span className={`provider-badge provider-badge-${status}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
                 </div>
 
-                <p className="provider-meta">Expires {formatTimestamp(request.expires_at)}</p>
+                {request.expires_at ? <p className="provider-meta">Expires {formatTimestamp(request.expires_at)}</p> : null}
                 {request.request_group_id ? <p className="provider-meta">Linked enquiry group: {request.request_group_id}</p> : null}
                 {stale ? <p className="provider-meta">Listing data was last updated {formatTimestamp(request.listing?.updated_at)} and needs review.</p> : null}
 
@@ -159,6 +160,8 @@ export default function RequestInbox({ requests, busy, onRespond }) {
           })}
         </ul>
       )}
+
+      <Pager meta={meta} disabled={busy} label="Enquiry" onChange={onPageChange} />
 
       <ConfirmationDialog
         open={Boolean(declineTarget)}

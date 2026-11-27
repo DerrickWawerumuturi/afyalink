@@ -43,6 +43,11 @@ export function effectiveStatus(request, now = Date.now()) {
   return status;
 }
 
+export function pageCount(total, limit = 20) {
+  const size = Number(limit) > 0 ? Number(limit) : 20;
+  return Math.max(1, Math.ceil(Math.max(0, Number(total) || 0) / size));
+}
+
 export function isStale(value, maxAgeMs = STALE_AFTER_MS, now = Date.now()) {
   if (!value) return true;
   const time = new Date(value).getTime();

@@ -21,6 +21,8 @@ import {
 import { validateListingInput, validateProfileInput } from './validation.js';
 import './provider.css';
 
+const PAGE_SIZE = 20;
+
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'requests', label: 'Requests' },
@@ -45,15 +47,25 @@ export default function ProviderDashboard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [pages, setPages] = useState({ listings: 1, requests: 1 });
+  const [meta, setMeta] = useState({
+    listings: { page: 1, limit: PAGE_SIZE, total: 0 },
+    requests: { page: 1, limit: PAGE_SIZE, total: 0 }
+  });
 
-  const load = useCallback(async ({ showLoading = true } = {}) => {
+  const load = useCallback(async ({ showLoading = true, nextPages } = {}) => {
     if (showLoading) setLoading(true);
     setError('');
+    const currentPages = nextPages || pages;
     try {
-      const [listingResult, requestResult] = await Promise.all([loadListings(), loadRequests()]);
+      const [listingResult, requestResult] = await Promise.all([
+        loadListings({ page: currentPages.listings, limit: PAGE_SIZE }),
+        loadRequests({ page: currentPages.requests, limit: PAGE_SIZE })
+      ]);
       const profileResult = await loadProfile();
       setListings(listingResult.data);
       setRequests(requestResult.data);
+      setMeta({ listings: listingResult.meta, requests: requestResult.meta });
       setProfile(profileResult.data || listingResult.data[0]?.provider || null);
       setProviders(isDemoMode() ? listDemoProviders() : []);
       setNotice([...new Set([listingResult.notice, requestResult.notice].filter(Boolean))].join(' '));
@@ -62,12 +74,19 @@ export default function ProviderDashboard() {
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, []);
+  }, [pages]);
 
   useEffect(() => {
     setCatalog(loadCatalog());
+  }, []);
+
+  useEffect(() => {
     load();
   }, [load]);
+
+  function changePage(section, page) {
+    setPages((current) => ({ ...current, [section]: page }));
+  }
 
   async function saveListing(change, setErrors) {
     const { errors, value } = validateListingInput(change.value, catalog, profile?.type);
@@ -217,7 +236,13 @@ export default function ProviderDashboard() {
       ) : null}
       {!loading && tab === 'requests' ? (
         <div role="tabpanel" id="provider-panel-requests" aria-labelledby="provider-tab-requests">
-          <RequestInbox requests={requests} busy={busy} onRespond={respond} />
+          <RequestInbox
+            requests={requests}
+            busy={busy}
+            meta={meta.requests}
+            onPageChange={(page) => changePage('requests', page)}
+            onRespond={respond}
+          />
         </div>
       ) : null}
       {!loading && tab === 'listings' ? (
@@ -227,7 +252,9 @@ export default function ProviderDashboard() {
             catalog={catalog}
             providerType={profile?.type}
             busy={busy}
-            canRemove={isDemoMode()}
+            canRemove
+            meta={meta.listings}
+            onPageChange={(page) => changePage('listings', page)}
             onSave={saveListing}
             onRemove={removeListing}
           />
