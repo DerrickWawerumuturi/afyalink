@@ -10,8 +10,8 @@ export async function getSession() {
 }
 if (auth) {
   auth.auth.onAuthStateChange((_event, session) => {
-    if (session?.access_token) localStorage.setItem('afyalink_access_token', session.access_token);
-    else localStorage.removeItem('afyalink_access_token');
-    window.dispatchEvent(new Event('afyalink-auth'));
+    if (session?.access_token) localStorage.setItem('carecheck_access_token', session.access_token);
+    else localStorage.removeItem('carecheck_access_token');
+    window.dispatchEvent(new Event('carecheck-auth'));
   });
 }

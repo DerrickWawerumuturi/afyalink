@@ -1,6 +1,6 @@
 # Database setup — Dev 2
 
-Status: **provisioned and verified on hosted Supabase and locally.** Hosted project: `afyalink-dev` (`iwqqhwgisvzeiyoricpt`, `eu-central-1`). Migration, seed, least-privilege API role and demo memberships are applied, and the backend passed the full E2E suite against both targets. All rows are synthetic.
+Status: **provisioned and verified on hosted Supabase and locally.** Hosted project: CareCheck development project (Supabase name `afyalink-dev`, ref `iwqqhwgisvzeiyoricpt`, `eu-central-1`). Migration, seed, least-privilege API role and demo memberships are applied, and the backend passed the full E2E suite against both targets. All rows are synthetic.
 
 ## Contract
 
@@ -73,7 +73,7 @@ Point `server/.env` at the local credentials (`DATABASE_SSL=false`) and run `npm
 
 ## Hosted development workflow
 
-Hosted project used for the sprint: **`afyalink-dev`** (`iwqqhwgisvzeiyoricpt`, org `myusercloud`, `eu-central-1`). It is a dedicated development project; never point these commands at production.
+Hosted project used for the sprint: **CareCheck development project** (Supabase name `afyalink-dev`, ref `iwqqhwgisvzeiyoricpt`, org `myusercloud`, `eu-central-1`). It is a dedicated development project; never point these commands at production.
 
 ```bash
 npx supabase@3.4.0 login

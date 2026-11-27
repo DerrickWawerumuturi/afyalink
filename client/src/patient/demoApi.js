@@ -92,7 +92,7 @@ export const compare = async (items, area) =>
         Number(b.complete) - Number(a.complete) ||
         (a.total ?? 0) - (b.total ?? 0),
     );
-const key = "afyalink.synthetic.requests.v1";
+const key = "carecheck.synthetic.requests.v1";
 export function requests() {
   return JSON.parse(localStorage.getItem(key) || "[]").map((r) => ({
     ...r,

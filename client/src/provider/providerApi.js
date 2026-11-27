@@ -19,7 +19,7 @@ let demoMode = false;
 function authHeaders() {
   let token = '';
   try {
-    token = localStorage.getItem('afyalink_access_token') || '';
+    token = localStorage.getItem('carecheck_access_token') || '';
   } catch {
     token = '';
   }

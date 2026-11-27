@@ -1,4 +1,4 @@
--- AfyaLink synthetic seed data.
+-- CareCheck synthetic seed data.
 -- All providers, items and prices are fictional. Never add real patient data.
 -- Safe to re-run: rows use deterministic UUIDs and `on conflict do nothing`.
 

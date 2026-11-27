@@ -213,7 +213,7 @@ export default function AuthDialog({ open, onClose, initialMode = 'signin' }) {
         ) : null}
 
         {mode === 'signup' ? (
-          <p className="auth-note">New accounts are patient accounts. Provider accounts are provisioned by the AfyaLink team with trusted membership.</p>
+          <p className="auth-note">New accounts are patient accounts. Provider accounts are provisioned by the CareCheck team with trusted membership.</p>
         ) : null}
       </div>
     </div>

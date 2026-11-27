@@ -1,4 +1,4 @@
--- Synthetic AfyaLink demo data. Fictional providers, items and prices.
+-- Synthetic CareCheck demo data. Fictional providers, items and prices.
 begin;
 insert into public.providers (id, name, type, location, verified) values
 ('2833e6d0-ff2b-5669-8d1d-821eec72ead2', 'Synthetic Afya Hospital 01', 'hospital', 'Nairobi', false),

@@ -1,4 +1,4 @@
--- AfyaLink least-privilege API role for Express (direct `pg` access).
+-- CareCheck least-privilege API role for Express (direct `pg` access).
 -- Run this as a privileged Supabase role (for example `postgres`) AFTER the
 -- initial migration has been applied. Replace the password placeholder locally
 -- and never commit the real value.

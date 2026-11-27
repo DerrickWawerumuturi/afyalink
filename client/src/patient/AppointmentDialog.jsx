@@ -52,10 +52,10 @@ export default function AppointmentDialog({ listing, onClose }) {
         .catch(() => { if (active) setSession(null); });
     };
     check();
-    window.addEventListener('afyalink-auth', check);
+    window.addEventListener('carecheck-auth', check);
     return () => {
       active = false;
-      window.removeEventListener('afyalink-auth', check);
+      window.removeEventListener('carecheck-auth', check);
     };
   }, []);
 
@@ -72,7 +72,7 @@ export default function AppointmentDialog({ listing, onClose }) {
     setError('');
     if (!session) {
       setError('Sign in to book an appointment.');
-      window.dispatchEvent(new Event('afyalink:open-auth'));
+      window.dispatchEvent(new Event('carecheck:open-auth'));
       return;
     }
     const when = new Date(slot);
@@ -100,7 +100,7 @@ export default function AppointmentDialog({ listing, onClose }) {
       if (failure.status === 401) {
         setSession(null);
         setError('Please sign in to book an appointment.');
-        window.dispatchEvent(new Event('afyalink:open-auth'));
+        window.dispatchEvent(new Event('carecheck:open-auth'));
       } else {
         setError(failure.message || 'Unable to book this appointment. Try again.');
       }
@@ -151,7 +151,7 @@ export default function AppointmentDialog({ listing, onClose }) {
               <button
                 type="button"
                 className="appointment-primary"
-                onClick={() => window.dispatchEvent(new Event('afyalink:open-auth'))}
+                onClick={() => window.dispatchEvent(new Event('carecheck:open-auth'))}
               >
                 <LogIn aria-hidden="true" /> Sign in / sign up
               </button>

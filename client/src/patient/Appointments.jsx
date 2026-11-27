@@ -66,8 +66,8 @@ export default function Appointments() {
   useEffect(() => {
     load();
     const refresh = () => load();
-    window.addEventListener('afyalink-auth', refresh);
-    return () => window.removeEventListener('afyalink-auth', refresh);
+    window.addEventListener('carecheck-auth', refresh);
+    return () => window.removeEventListener('carecheck-auth', refresh);
   }, []);
 
   async function cancel(id) {
@@ -106,7 +106,7 @@ export default function Appointments() {
           <LogIn aria-hidden="true" />
           <h2>Sign in to see your appointments</h2>
           <p>Use your patient account to book services and track provider responses.</p>
-          <button type="button" className="appointments-primary" onClick={() => window.dispatchEvent(new Event('afyalink:open-auth'))}>
+          <button type="button" className="appointments-primary" onClick={() => window.dispatchEvent(new Event('carecheck:open-auth'))}>
             Sign in / create account
           </button>
         </div>

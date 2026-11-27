@@ -2,14 +2,14 @@ import * as demo from './demoApi';
 import { getSession } from './auth';
 
 const base = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:5000/api');
-const idKey = 'afyalink.live.requests.v1';
-const snapshotKey = 'afyalink.live.listings.v1';
+const idKey = 'carecheck.live.requests.v1';
+const snapshotKey = 'carecheck.live.listings.v1';
 export const catalog = [];
 const listings = new Map();
 const providers = new Map();
 let source = 'loading';
 let notice = 'Connecting to the care directory…';
-const announce = () => window.dispatchEvent(new Event('afyalink-source'));
+const announce = () => window.dispatchEvent(new Event('carecheck-source'));
 function mode(value, text) { source = value; notice = text; announce(); }
 export const getSource = () => ({ source, notice });
 function cache(rows) { rows.forEach(row => listings.set(row.id, row)); try { sessionStorage.setItem(snapshotKey, JSON.stringify([...listings.values()])); } catch {} }

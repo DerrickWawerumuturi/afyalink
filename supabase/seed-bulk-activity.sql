@@ -1,4 +1,4 @@
--- Synthetic AfyaLink requests and appointments (idempotent).
+-- Synthetic CareCheck requests and appointments (idempotent).
 begin;
 insert into public.requests (id, listing_id, patient_user_id, request_group_id, quantity, status, confirmed_price, expires_at, created_at) values
 ('13f096d2-06f4-568e-a684-5e1f8da97ce4', '30000000-0000-4000-8000-000000000001', (select id from auth.users where email = 'patient.demo@afyalink.test'), 'cf517c65-ba0b-5e0d-b40b-83233f33eb05', 6, 'confirmed', 1233.11, '2026-11-28T12:48:55.428691Z', '2026-11-26T00:19:55.428691Z'),

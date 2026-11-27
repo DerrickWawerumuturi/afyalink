@@ -1,6 +1,6 @@
 import { effectiveStatus } from './validation.js';
 
-const STORAGE_KEY = 'afyalink.provider.demo.v2';
+const STORAGE_KEY = 'carecheck.provider.demo.v2';
 
 const providers = [
   { id: '10000000-0000-4000-8000-000000000001', name: 'Demo Afya Hospital', type: 'hospital', location: 'Nairobi', verified: false },

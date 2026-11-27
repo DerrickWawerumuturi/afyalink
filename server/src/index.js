@@ -18,7 +18,7 @@ app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '32kb' }));
 
 app.get('/api/health', (_request, response) =>
-  response.json({ data: { status: 'ok', service: 'afyalink-api' } }),
+  response.json({ data: { status: 'ok', service: 'carecheck-api' } }),
 );
 
 app.use('/api', listingsRouter);
@@ -63,7 +63,7 @@ export default app;
 // Vercel invokes the exported app; a local process needs its own listener.
 if (process.env.VERCEL !== '1') {
   const port = Number(process.env.PORT || 5000);
-  const server = app.listen(port, () => console.log(`AfyaLink API listening on port ${port}`));
+  const server = app.listen(port, () => console.log(`CareCheck API listening on port ${port}`));
 
   async function shutdown(signal) {
     console.log(`${signal} received, shutting down`);

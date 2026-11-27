@@ -1,4 +1,4 @@
-# AfyaLink patient homepage: visual references
+# CareCheck patient homepage: visual references
 
 These images are internal inspiration only. They are not application assets: do not import, serve, deploy, or copy third-party photography, illustrations, or branding. Use original or appropriately licensed assets in the product. The two requested Neko and Zocdoc files are the exact user-supplied PNGs, retained without recompression.
 
@@ -9,7 +9,7 @@ Open every image in this directory and study the actual composition before imple
 | Image | Source | What to study |
 | --- | --- | --- |
 | `neko-user-supplied.png` | [Neko Health](https://www.nekohealth.com/) | Human photography at a genuinely confident scale: the close crop becomes the composition, with type and whitespace positioned deliberately around it. Adapt the sense of humanity and scale, not the image or typography. |
-| `zocdoc-user-supplied.png` | [Zocdoc](https://www.zocdoc.com/) | The working search is a primary, wide part of the hero, with clear fields and a strong action. The illustration interacts with the search instead of sitting in an unrelated card. Create an original AfyaLink visual language. |
+| `zocdoc-user-supplied.png` | [Zocdoc](https://www.zocdoc.com/) | The working search is a primary, wide part of the hero, with clear fields and a strong action. The illustration interacts with the search instead of sitting in an unrelated card. Create an original CareCheck visual language. |
 | `glassbox-user-supplied.png` | [Glassbox](https://seeglassbox.com/) | Our own benchmark for intentional hierarchy, grid, evidence-led graphics and finish. Learn the design discipline, not its literal visual identity. |
 | `stash-user-supplied.png` | User-supplied Stash homepage; [Stash website repository](https://github.com/DerrickWawerumuturi/Stash.website) | Our own benchmark for a distinctive concept carried through the whole composition: floating content is integral to the product story. Do not copy its dark palette or floating cards literally. Repository is private and read-only for reference. |
 
@@ -24,6 +24,6 @@ Screenshots for these sources are **not yet included** in this pack. Open the pa
 - [Zocdoc brand project by Ginny Wang](https://ginnydesign.com/project-zocdoc.html): expressive brand system and illustration across touchpoints.
 - [Develop Health by Halo Lab](https://www.halo-lab.com/projects/develop-health): a consistent geometric motif across an identity.
 - [Alan](https://alan.com/en): approachable, warm healthcare brand expression.
-- The Pudding: [Women's Pockets](https://pudding.cool/2018/08/pockets/) for object-shaped comparisons and visual scale; [Who's in Your Wallet?](https://pudding.cool/2022/04/banknotes/) for custom visual groupings and narrative data. Study how graphic form conveys the question, then design original price and availability explanations grounded in AfyaLink data.
+- The Pudding: [Women's Pockets](https://pudding.cool/2018/08/pockets/) for object-shaped comparisons and visual scale; [Who's in Your Wallet?](https://pudding.cool/2022/04/banknotes/) for custom visual groupings and narrative data. Study how graphic form conveys the question, then design original price and availability explanations grounded in CareCheck data.
 
 These are visual references, not specifications or a license to reuse their assets. Never present synthetic examples as verified prices or availability.

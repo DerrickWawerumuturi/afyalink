@@ -1,4 +1,4 @@
--- AfyaLink initial schema.
+-- CareCheck initial schema.
 -- Target: Supabase Postgres (development project). All data in this prototype is synthetic.
 
 create extension if not exists pgcrypto;

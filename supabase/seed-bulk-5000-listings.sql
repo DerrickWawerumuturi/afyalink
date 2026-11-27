@@ -1,4 +1,4 @@
--- Synthetic AfyaLink bulk listings (idempotent).
+-- Synthetic CareCheck bulk listings (idempotent).
 begin;
 insert into public.providers (id, name, type, location, verified) values
 ('c9569a0a-a214-55a4-8607-15095b242e9d', 'Synthetic Afya Hospital 26', 'hospital', 'Garissa', false),

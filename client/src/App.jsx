@@ -18,8 +18,8 @@ export default function App() {
 
   useEffect(() => {
     const openAuth = () => setAuthOpen(true);
-    window.addEventListener('afyalink:open-auth', openAuth);
-    return () => window.removeEventListener('afyalink:open-auth', openAuth);
+    window.addEventListener('carecheck:open-auth', openAuth);
+    return () => window.removeEventListener('carecheck:open-auth', openAuth);
   }, []);
 
   useEffect(() => {
@@ -27,14 +27,14 @@ export default function App() {
     let active = true;
     auth.auth.getSession().then(({ data }) => {
       if (!active) return;
-      if (data.session?.access_token) localStorage.setItem('afyalink_access_token', data.session.access_token);
-      else localStorage.removeItem('afyalink_access_token');
+      if (data.session?.access_token) localStorage.setItem('carecheck_access_token', data.session.access_token);
+      else localStorage.removeItem('carecheck_access_token');
       setSession(data.session);
       setReady(true);
     }).catch(() => { if (active) setReady(true); });
     const { data } = auth.auth.onAuthStateChange((_event, value) => {
-      if (value?.access_token) localStorage.setItem('afyalink_access_token', value.access_token);
-      else localStorage.removeItem('afyalink_access_token');
+      if (value?.access_token) localStorage.setItem('carecheck_access_token', value.access_token);
+      else localStorage.removeItem('carecheck_access_token');
       setSession(value);
     });
     return () => { active = false; data.subscription.unsubscribe(); };
@@ -58,7 +58,7 @@ export default function App() {
   return (
     <>
       <div className="app-shell">
-        <a className="app-brand" href="#/" aria-label="AfyaLink home">AfyaLink<span aria-hidden="true">.</span></a>
+        <a className="app-brand" href="#/" aria-label="CareCheck home">CareCheck<span aria-hidden="true">.</span></a>
         <div className="app-nav-actions">
           <nav aria-label="Main navigation">
             {navItems.map((item) => (
@@ -81,7 +81,7 @@ export default function App() {
       </div>
 
       {!ready ? (
-        <main><p role="status">Starting AfyaLink…</p></main>
+        <main><p role="status">Starting CareCheck…</p></main>
       ) : route === '#/provider' ? (
         <main className="provider-main"><ProviderDashboard key={session?.user?.id || 'anonymous'} /></main>
       ) : (

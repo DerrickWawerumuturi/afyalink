@@ -1,4 +1,4 @@
-# AfyaLink API contract v0.1
+# CareCheck API contract v0.1
 
 Base URL: `/api`. All routes below are implemented; authorization, validation and examples are the implementation contract.
 

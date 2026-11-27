@@ -1,4 +1,4 @@
-# AfyaLink
+# CareCheck
 
 **Find the care you need, understand the cost, and confirm availability before travelling.**
 
@@ -6,7 +6,7 @@ Private hackathon project for Kenya. This repository starts with a runnable appl
 
 ## Problem and purpose
 
-Patients in Kenya can face fragmented information about medical service availability, medicine stock and prices. Visiting several hospitals or pharmacies can add transport costs, delay care and make completing prescribed treatment harder. AfyaLink explores whether better price and availability information can reduce avoidable journeys and help people plan healthcare spending. It does not claim to solve medicine supply, clinical decision-making or healthcare financing.
+Patients in Kenya can face fragmented information about medical service availability, medicine stock and prices. Visiting several hospitals or pharmacies can add transport costs, delay care and make completing prescribed treatment harder. CareCheck explores whether better price and availability information can reduce avoidable journeys and help people plan healthcare spending. It does not claim to solve medicine supply, clinical decision-making or healthcare financing.
 
 The product combines CareCheck (confirm hospital services before travel) and MediPrice (compare prescribed medicines) in one patient journey. Hospitals and pharmacies share one provider model, listing system and confirmation workflow. Patients and community health promoters can discover care; hospitals and pharmacies maintain their own information. County analytics and provider subscription revenue are future hypotheses, not validated outcomes.
 
@@ -44,7 +44,7 @@ Flow: React → Express `/api` → PostgreSQL. The browser never receives databa
 Dev 1 coordinates `client/src/App.jsx`, global styling, `components/`, `lib/` and client dependencies. Dev 2 coordinates root tooling and `docs/API.md`. Agree before changing shared files; frontend developers can use fixtures matching the documented response shapes while the API is built.
 
 ```text
-afyalink/
+carecheck/
 ├── client/
 │   ├── .env.example
 │   ├── index.html
@@ -123,8 +123,8 @@ The server implements the routes below; details, examples, errors and authorizat
 Prerequisites: Node.js 22.12+ and npm, Git, and a team Supabase development project when database work starts. Node 22.17 is recorded in `.nvmrc`. Dependencies are pinned in workspace manifests and the root lockfile.
 
 ```bash
-git clone https://github.com/DerrickWawerumuturi/afyalink.git
-cd afyalink
+git clone https://github.com/DerrickWawerumuturi/afyalink.git carecheck
+cd carecheck
 npm ci
 cp client/.env.example client/.env
 cp server/.env.example server/.env

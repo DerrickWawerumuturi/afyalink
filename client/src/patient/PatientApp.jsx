@@ -315,7 +315,7 @@ function Layout() {
     [error, E] = useState("");
   const [source, setSource] = useState(getSource());
   const [busy, setBusy] = useState(false);
-  useEffect(() => { const update = () => setSource(getSource()); window.addEventListener('afyalink-source', update); initialize().catch(() => {}); return () => window.removeEventListener('afyalink-source', update); }, []);
+  useEffect(() => { const update = () => setSource(getSource()); window.addEventListener('carecheck-source', update); initialize().catch(() => {}); return () => window.removeEventListener('carecheck-source', update); }, []);
   async function send(lines) {
     if (busy) return;
     setBusy(true);
@@ -343,7 +343,7 @@ function Layout() {
         </Routes>}
       </main>
       <footer>
-        AfyaLink · Healthcare information{" "}
+        CareCheck · Healthcare information{" "}
         <a href="#/provider">
           Provider dashboard <ArrowUpRight />
         </a>
