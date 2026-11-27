@@ -104,6 +104,7 @@ The initial server implements only `GET /api/health`. The following routes are t
 | GET | `/api/requests/:id` | Patient reads their own enquiry |
 | GET / POST | `/api/provider/listings` | Provider lists/creates its own offerings |
 | PATCH | `/api/provider/listings/:id` | Provider updates its own offering |
+| DELETE | `/api/provider/listings/:id` | Provider removes its own offering |
 | GET | `/api/provider/requests` | Provider reads incoming enquiries |
 | PATCH | `/api/provider/requests/:id` | Provider confirms or declines an enquiry |
 

@@ -42,6 +42,7 @@ grant insert (provider_id, item_id, price, pricing_unit, available, stock_quanti
   on public.listings to afyalink_api;
 grant update (price, available, stock_quantity, updated_at)
   on public.listings to afyalink_api;
+grant delete on public.listings to afyalink_api;
 
 grant select on public.requests to afyalink_api;
 grant insert (listing_id, patient_user_id, request_group_id, quantity, status, expires_at)

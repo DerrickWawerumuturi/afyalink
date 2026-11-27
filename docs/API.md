@@ -59,6 +59,8 @@ Insufficient stock or unavailable items are missing. For partial options, `compl
 
 `PATCH /provider/listings/:id`: allow only price, availability and stock quantity. The client may echo `item_id` and `pricing_unit` from the edit form, but they must equal the current values; any change is rejected with 400. Same validations as creation; server sets updated_at. Never permit changing owner. Return updated listing. Monetary values non-negative, at most two decimal places; stock null or non-negative integer. Medication unit must match catalog unit.
 
+`DELETE /provider/listings/:id`: provider-scoped. Return `{"data":{"id":"..."}}`; 404 for another owner's listing; 409 `LISTING_HAS_REQUESTS` when a request references the listing, preserving enquiry history.
+
 ## Provider requests
 
 `GET /provider/requests?status=pending&page=1&limit=20`: scoped paginated request records with listing/item and quantity; do not expose patient contact details.

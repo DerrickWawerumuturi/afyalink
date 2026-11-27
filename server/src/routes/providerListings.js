@@ -167,4 +167,24 @@ router.patch(
   }),
 );
 
+router.delete(
+  '/listings/:id',
+  asyncHandler(async (request, response) => {
+    const { id } = parse(idSchema, request.params);
+    try {
+      const result = await query(
+        'DELETE FROM listings WHERE id = $1 AND provider_id = $2 RETURNING id',
+        [id, request.provider.id],
+      );
+      if (result.rowCount === 0) throw notFound('Listing not found');
+      response.json({ data: { id } });
+    } catch (error) {
+      if (error.code === '23503') {
+        throw conflict('LISTING_HAS_REQUESTS', 'Listing has request history and cannot be removed');
+      }
+      throw error;
+    }
+  }),
+);
+
 export default router;
