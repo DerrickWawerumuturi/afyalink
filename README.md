@@ -2,7 +2,7 @@
 
 **Find the care you need, understand the cost, and confirm availability before travelling.**
 
-Private hackathon project for Kenya. This repository starts with a runnable application shell and agreed implementation contracts; search, database access, authentication and confirmation workflows remain to be implemented during the sprint. All demonstrations must use synthetic data.
+Private hackathon project for Kenya. The application shell, API, database, authentication foundation, confirmation workflow and provider dashboard are implemented. The provider side is being extended into a healthcare supply chain traceability, monitoring and intelligence system. All demonstrations must use synthetic data.
 
 ## Problem and purpose
 
@@ -20,16 +20,16 @@ The product combines CareCheck (confirm hospital services before travel) and Med
 
 A successful demo persists a request, confirms it through the correct provider account and shows the resulting confirmed price and expiry to the requesting demo patient. Declines, expired confirmations, empty results, loading and API failures must be visible. Confirmation is an enquiry, not a booking, prescription, payment or stock reservation.
 
-Stretch: compare a whole synthetic prescription and add service + medication + manually entered transport estimates. Incomplete baskets must show missing items and must never be ranked as cheaper complete prescriptions. Insurance/SHA coverage, payments, delivery, maps, AI/OCR prescription uploads, clinical advice and advanced analytics are outside the MVP.
+Stretch: compare a whole synthetic prescription and add service + medication + manually entered transport estimates. Incomplete baskets must show missing items and must never be ranked as cheaper complete prescriptions. Provider inventory intelligence uses explainable calculations over recorded movements, not machine learning. Insurance/SHA coverage, payments, delivery, maps, AI/OCR prescription uploads and clinical advice are outside the MVP.
 
 ## Stack and architecture
 
 - One React application built with Vite: patient pages and provider dashboard with shared navigation.
 - One Node.js / Express API: input validation with Zod, CORS and PostgreSQL access through `pg`.
 - Supabase-hosted PostgreSQL: one shared schema and synthetic seed dataset.
-- Supabase Auth is the planned identity provider for patient and provider demo accounts. Add its SDK only when implementing auth.
+- Supabase Auth is the identity provider for patient and provider demo accounts. Bearer tokens are verified server-side; provider ownership comes from trusted membership rows.
 
-Flow: React → Express `/api` → PostgreSQL. The browser never receives database credentials or privileged Supabase keys. Express owns business rules and checks authenticated ownership on every private operation. Database access is not wired in this initial shell. `/api/health` reports process health only.
+Flow: React → Express `/api` → PostgreSQL. The browser never receives database credentials or privileged Supabase keys. Express owns business rules and checks authenticated ownership on every private operation. Database access is wired through the `pg` pool; `/api/health` reports process health only.
 
 ## Team ownership and branches
 
@@ -76,7 +76,7 @@ afyalink/
 
 ## Database design (implementation contract)
 
-Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `numeric(12,2)`, and foreign keys. API prices are JSON numbers in KES; perform totals in integer minor units internally to avoid floating-point errors. Format display as KSh. This is a proposed schema, not an applied migration.
+Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `numeric(12,2)`, and foreign keys. API prices are JSON numbers in KES; perform totals in integer minor units internally to avoid floating-point errors. Format display as KSh. The migration is in `supabase/migrations/` and has been applied to local and hosted development projects.
 
 | Table | Key fields and constraints |
 | --- | --- |
@@ -85,8 +85,13 @@ Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `
 | `listings` | `id`, `provider_id` FK, `item_id` FK, `price`, `currency` fixed KES, `pricing_unit`, `available`, nullable non-negative integer `stock_quantity`, `updated_at`; unique provider/item/pricing-unit |
 | `requests` | `id`, `listing_id` FK, `patient_user_id` FK to auth.users, nullable `request_group_id` UUID, positive integer `quantity`, `status`, nullable `confirmed_price`, `expires_at`, timestamps |
 | `provider_memberships` | `user_id` FK to auth.users, `provider_id` FK, unique pair; assigned by trusted setup only |
+| `inventory_batches` | `provider_id`, `listing_id`, lot number, manufacturer, supplier, received/expiry dates, initial/current quantity, unit, storage, status, creator label, timestamps |
+| `inventory_movements` | append-only batch ledger with signed quantity, previous/new balance, type, reason/reference, authenticated actor label and occurrence timestamp |
+| `inventory_audits` / `inventory_audit_lines` | physical counts with expected/counted snapshot values and generated discrepancy; immutable after insert |
+| `provider_events` | server-generated provider action log with actor, affected record, timestamp and previous/new JSON values |
+| `listing_availability_events` | append-only availability history with previous state and authenticated actor label |
 
-The four core domain tables are supplemented by provider membership for authorization. A patient may only read their own requests. A provider member may manage listings and respond to requests belonging to that provider. Derive identity and provider scope from a validated session and membership; never trust a submitted user or provider ID as authorization.
+The four core domain tables are supplemented by provider membership for authorization and the inventory tables for traceability. A patient may only read their own requests. A provider member may manage listings, respond to requests and read inventory history belonging to that provider. Derive identity and provider scope from a validated session and membership; never trust a submitted user or provider ID as authorization. Movement and audit records are immutable; corrections are new documented adjustment or reversal records. Batch receipts and movements synchronise `listings.stock_quantity` from recorded batch balances. Recording a batch does not prove medicine authenticity.
 
 Indexes: listings on provider/item and availability; catalog names for search; requests on patient, listing and status; memberships on user/provider. Prevent hospital medication listings and pharmacy service listings in API validation and database integrity logic. Define updated-at triggers and validate confirmed price/expiry before enabling writes. Keep historical request prices stable when a listing changes; confirmations snapshot the quoted unit price.
 
@@ -94,7 +99,7 @@ Transitions: pending → confirmed or declined; pending and confirmed become eff
 
 ## API contracts
 
-The initial server implements only `GET /api/health`. The following routes are the agreed work contract; details, examples, errors and authorization are in [docs/API.md](docs/API.md).
+The server implements the routes below; details, examples, errors and authorization are in [docs/API.md](docs/API.md).
 
 | Method | Route | Purpose |
 | --- | --- | --- |
@@ -104,8 +109,19 @@ The initial server implements only `GET /api/health`. The following routes are t
 | GET | `/api/requests/:id` | Patient reads their own enquiry |
 | GET / POST | `/api/provider/listings` | Provider lists/creates its own offerings |
 | PATCH | `/api/provider/listings/:id` | Provider updates its own offering |
+| DELETE | `/api/provider/listings/:id` | Provider removes its own offering |
 | GET | `/api/provider/requests` | Provider reads incoming enquiries |
 | PATCH | `/api/provider/requests/:id` | Provider confirms or declines an enquiry |
+| GET / POST | `/api/provider/inventory/batches` | Provider lists/creates medicine batches with initial receipt |
+| GET | `/api/provider/inventory/batches/:id/history` | Complete immutable batch movement history |
+| POST | `/api/provider/inventory/batches/:id/movements` | Record dispensing, receipt, adjustment, damage, expiry, quarantine or return |
+| GET | `/api/provider/inventory/monitoring` | Stock, expiry and data-derived alerts |
+| GET | `/api/provider/inventory/expiry` | Expiry buckets from recorded batches |
+| GET | `/api/provider/inventory/forecast` | Explainable stockout coverage estimates |
+| GET / POST | `/api/provider/inventory/audits` | Physical counts and discrepancy records |
+| GET | `/api/provider/analytics/inventory` | Consumption, expiry loss and movement analytics |
+| GET | `/api/provider/analytics/operations` | Enquiry and service availability analytics |
+| GET | `/api/provider/audit-log` | Server-generated provider action history |
 
 ## Local setup
 
@@ -127,7 +143,7 @@ Open `http://localhost:5173`; provider shell is `/#/provider`. Check `http://loc
 
 Client environment: `VITE_API_URL=http://localhost:5000/api`. Every `VITE_` value is public. Server environment: `PORT=5000`, `CLIENT_URL=http://localhost:5173`, `DATABASE_URL=`. Leave the database URL empty for shell development; Dev 2 obtains the connection string privately from the Supabase dashboard and configures TLS with certificate verification. No privileged Supabase key is needed by the initial `pg` architecture. Authentication configuration will be added with its implementation.
 
-Database setup is intentionally pending: Dev 2 creates and reviews the schema migration, least-privilege database role, RLS policies and synthetic seed, then documents exact local/hosted commands in `supabase/README.md`. Do not run placeholder `seed.sql` expecting populated data. Keep Supabase CLI version and target environment explicit before applying migrations.
+Database setup is implemented: the migration, least-privilege database role, RLS policies and synthetic seed are in `supabase/`, with exact local/hosted commands in `supabase/README.md`. A local stack and a hosted development project are provisioned; no production resources exist. Keep the Supabase CLI version and target environment explicit before applying migrations.
 
 ## Remaining two-hour sprint
 
