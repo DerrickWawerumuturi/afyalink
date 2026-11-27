@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="AfyaLink">
+  <rect width="32" height="32" rx="8" fill="#174d3f"/>
+  <path d="M16 23.2s-6.8-4-6.8-9A3.9 3.9 0 0 1 16 11.6a3.9 3.9 0 0 1 6.8 2.6c0 5-6.8 9-6.8 9z" fill="#e7f1ec"/>
+  <path d="M12.4 16.4h2.2l1-2.1 1.7 4.2 1.2-2.1h1.1" fill="none" stroke="#174d3f" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/>
+</svg>
