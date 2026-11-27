@@ -1,12 +1,24 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 
 let pool = null;
 
+const DEFAULT_SSL_CA = fileURLToPath(new URL('../../certs/supabase-pooler-ca.pem', import.meta.url));
+
 function sslConfig() {
   const value = process.env.DATABASE_SSL;
   if (value === 'false') return false;
-  if (value === 'true') return { rejectUnauthorized: true };
-  return undefined;
+  if (value !== 'true' && !process.env.DATABASE_SSL_CA) return undefined;
+
+  const caPath = process.env.DATABASE_SSL_CA || DEFAULT_SSL_CA;
+  let ca;
+  try {
+    ca = fs.readFileSync(caPath, 'utf8');
+  } catch {
+    throw new Error(`Unable to read DATABASE_SSL_CA at ${caPath}`);
+  }
+  return { rejectUnauthorized: true, ca };
 }
 
 export function isDatabaseConfigured() {
