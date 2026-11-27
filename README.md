@@ -172,7 +172,7 @@ Before real use, provider onboarding and verification, data freshness, access co
 
 ## Demo, deployment and validation
 
-Deployment plan: React on Vercel, Express on Render, PostgreSQL on Supabase; no hosting resources are provisioned by this repository setup. Configure the deployed API URL and exact allowed client origin privately. Verify health and a complete workflow after deployment. Keep both local processes available if hosting is delayed.
+Deployment plan: the root `vercel.json` deploys the Vite client and Express API as Vercel services, routing `/api/*` to the API; PostgreSQL stays on Supabase. The API can also run as a normal Node process on Render or locally. Configure `VITE_API_URL`, `CLIENT_URL`, database and Supabase Auth values privately per environment. Verify health and a complete workflow after deployment, and keep both local processes available if hosting is delayed.
 
 Demo story: find a fictional ultrasound service, compare displayed KES prices, send an enquiry, confirm from the corresponding provider, refresh patient status, and repeat with one exact prescribed medication. Show a declined or expired enquiry and explain the freshness limitation.
 
