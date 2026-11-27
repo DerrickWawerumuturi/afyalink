@@ -10,6 +10,16 @@ Statuses: 200 read/update, 201 create, 400 invalid input, 401 missing/invalid au
 
 Private routes use `Authorization: Bearer <Supabase access token>`. Express verifies the token and derives the user ID. Provider routes additionally look up provider membership. Clients cannot assign their own membership. All write fields not explicitly allowed are rejected.
 
+## Directory bootstrap
+
+`GET /directory`: public snapshot of catalog items and providers for the patient client to populate its local cache:
+
+```json
+{"data":{"catalog_items":[{"id":"...","name":"Ultrasound","type":"service","strength":null,"dosage_form":null,"unit":"scan"}],"providers":[{"id":"...","name":"Demo Afya Hospital","type":"hospital","location":"Nairobi","verified":false}]},"meta":{"catalog_items":1,"providers":1}}
+```
+
+`GET /providers/:id/listings`: public listings for one provider, in the standard listing shape. Use `GET /listings` for filtered, paginated search.
+
 ## Search
 
 `GET /listings?type=service&q=ultrasound&location=Nairobi&available=true&max_price=2000&sort=price_asc&page=1&limit=20`

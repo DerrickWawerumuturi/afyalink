@@ -26,6 +26,7 @@ import {
   search,
   compare,
   detail,
+  providerListings,
   enquire,
   requests,
   simulateReply, initialize, getSource,
@@ -189,7 +190,32 @@ function Listing({ row, send }) {
   );
 }
 function Facility({ send }) {
-  const rows = detail(useParams().id);
+  const { id } = useParams();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const cached = detail(id);
+    if (cached.length) {
+      setRows(cached);
+      setLoading(false);
+      setLoadError("");
+      return () => { active = false; };
+    }
+    setRows([]);
+    setLoading(true);
+    setLoadError("");
+    providerListings(id)
+      .then((value) => { if (active) setRows(value); })
+      .catch((error) => { if (active) setLoadError(error.message || "Unable to load provider details."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id]);
+
+  if (loading) return <p role="status">Loading provider details…</p>;
+  if (loadError) return <p role="alert">{loadError}</p>;
   return rows.length ? (
     <>
       <small>PROVIDER DETAILS</small>

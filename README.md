@@ -102,6 +102,8 @@ The server implements the routes below; details, examples, errors and authorizat
 | Method | Route | Purpose |
 | --- | --- | --- |
 | GET | `/api/listings` | Public service/medication search |
+| GET | `/api/directory` | Public catalog/provider bootstrap for the patient client |
+| GET | `/api/providers/:id/listings` | Public listings for one provider |
 | POST | `/api/compare` | Compare an exact synthetic basket across providers |
 | POST | `/api/requests` | Authenticated patient creates a confirmation enquiry |
 | GET | `/api/requests/:id` | Patient reads their own enquiry |

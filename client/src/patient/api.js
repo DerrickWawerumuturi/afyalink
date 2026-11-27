@@ -6,6 +6,7 @@ const idKey = 'afyalink.live.requests.v1';
 const snapshotKey = 'afyalink.live.listings.v1';
 export const catalog = [];
 const listings = new Map();
+const providers = new Map();
 let source = 'loading';
 let notice = 'Connecting to the care directory…';
 const announce = () => window.dispatchEvent(new Event('afyalink-source'));
@@ -28,23 +29,21 @@ async function call(path, options = {}) {
 function canFallback(e) { return e.status === 0 || e.status === 503; }
 export async function initialize() {
   try {
-    async function allListings(type) {
-      const rows = []; let page = 1, total = 0;
-      do {
-        const response = await call(`/listings?${new URLSearchParams({ type, limit: '100', page: String(page) })}`);
-        rows.push(...response.data); total = response.meta?.total ?? rows.length;
-        if (!response.data.length) break;
-        page++;
-      } while (rows.length < total);
-      return rows;
-    }
-    const [services, medicines] = await Promise.all(['service', 'medication'].map(allListings));
-    const rows = [...services, ...medicines]; listings.clear(); cache(rows);
-    replaceCatalog([...new Map(rows.map(row => [row.item.id, row.item])).values()]);
+    const response = await call('/directory');
+    const data = response.data || {};
+    const items = Array.isArray(data.catalog_items) ? data.catalog_items : [];
+    const providerRows = Array.isArray(data.providers) ? data.providers : [];
+    providers.clear();
+    providerRows.forEach((provider) => providers.set(provider.id, provider));
+    listings.clear();
+    try { sessionStorage.removeItem(snapshotKey); } catch {}
+    replaceCatalog(items);
     mode('live', 'Connected to the care directory. Availability and prices are provider-reported.');
   } catch (e) {
     if (!canFallback(e)) { mode('error', e.message); throw e; }
-    replaceCatalog(demo.catalog); mode('demo', 'Demo data: the care directory is unavailable. Requests remain on this device.');
+    providers.clear();
+    replaceCatalog(demo.catalog);
+    mode('demo', 'Demo data: the care directory is unavailable. Requests remain on this device.');
   }
 }
 export async function search(type, q = '', area = '') {
@@ -55,6 +54,16 @@ export async function search(type, q = '', area = '') {
   const result = await call(`/listings?${query}`); cache(result.data); return result.data;
 }
 export function detail(id) { return source === 'demo' ? demo.detail(id) : [...listings.values()].filter(row => row.provider.id === id); }
+export function providerById(id) {
+  if (providers.has(id)) return providers.get(id);
+  return detail(id)[0]?.provider || null;
+}
+export async function providerListings(id) {
+  if (source === 'demo') return demo.detail(id);
+  const result = await call(`/providers/${encodeURIComponent(id)}/listings`);
+  cache(result.data);
+  return result.data;
+}
 export async function compare(items, area) {
   if (source === 'demo') return demo.compare(items, area);
   return (await call('/compare', { method:'POST', body:{ items:items.map(({item_id, quantity}) => ({ item_id, quantity })), ...(area.trim() ? {location:area.trim()} : {}) } })).data;

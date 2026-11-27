@@ -32,6 +32,39 @@ const ORDER_BY = {
 };
 
 router.get(
+  '/directory',
+  asyncHandler(async (_request, response) => {
+    const [items, providers] = await Promise.all([
+      query('SELECT id, name, type, strength, dosage_form, unit FROM catalog_items ORDER BY name'),
+      query('SELECT id, name, type, location, verified FROM providers ORDER BY name'),
+    ]);
+    response.json({
+      data: { catalog_items: items.rows, providers: providers.rows },
+      meta: { catalog_items: items.rowCount, providers: providers.rowCount },
+    });
+  }),
+);
+
+const providerIdSchema = z.object({ id: z.string().uuid() });
+
+router.get(
+  '/providers/:id/listings',
+  asyncHandler(async (request, response) => {
+    const { id } = parse(providerIdSchema, request.params);
+    const result = await query(
+      `SELECT ${LISTING_COLUMNS}
+         FROM listings l
+         JOIN providers p ON p.id = l.provider_id
+         JOIN catalog_items i ON i.id = l.item_id
+        WHERE l.provider_id = $1
+        ORDER BY l.price ASC, l.id ASC`,
+      [id],
+    );
+    response.json({ data: result.rows.map(toListing) });
+  }),
+);
+
+router.get(
   '/listings',
   asyncHandler(async (request, response) => {
     const filters = parse(searchSchema, request.query);
@@ -60,14 +93,16 @@ router.get(
          JOIN catalog_items i ON i.id = l.item_id
         WHERE ${conditions.join(' AND ')}`;
 
-    const countResult = await query(`SELECT COUNT(*)::int AS total ${from}`, values);
-    const result = await query(
-      `SELECT ${LISTING_COLUMNS}
+    const [countResult, result] = await Promise.all([
+      query(`SELECT COUNT(*)::int AS total ${from}`, values),
+      query(
+        `SELECT ${LISTING_COLUMNS}
          ${from}
         ORDER BY ${ORDER_BY[filters.sort]}
         LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, filters.limit, (filters.page - 1) * filters.limit],
-    );
+        [...values, filters.limit, (filters.page - 1) * filters.limit],
+      ),
+    ]);
 
     response.json({
       data: result.rows.map(toListing),
