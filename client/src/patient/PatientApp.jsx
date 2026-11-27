@@ -31,7 +31,7 @@ import {
   detail,
   enquire,
   requests,
-  simulateReply,
+  simulateReply, initialize, getSource,
 } from "./api";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,7 +59,7 @@ function SearchSuggestions({ mode, value, onChange }) {
   const matches = catalog.filter((item) => item.type === mode && label(item).toLowerCase().includes(value.trim().toLowerCase()));
   const choose = (item) => { onChange(item.name); setOpen(false); setActive(-1); };
   return <div className="home-combobox">
-    <input id="search-item" role="combobox" aria-labelledby="search-item-label" aria-expanded={open} aria-controls="home-search-options" aria-autocomplete="list" aria-activedescendant={open && active >= 0 && matches[active] ? `home-option-${matches[active].id}` : undefined} autoComplete="off" value={value} placeholder={mode === "service" ? "Search services, e.g. ultrasound" : "Search demo medications"}
+    <input id="search-item" role="combobox" aria-labelledby="search-item-label" aria-expanded={open} aria-controls="home-search-options" aria-autocomplete="list" aria-activedescendant={open && active >= 0 && matches[active] ? `home-option-${matches[active].id}` : undefined} autoComplete="off" value={value} placeholder={mode === "service" ? "Search services, e.g. ultrasound" : "Search medications"}
       onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)}
       onChange={(e) => { onChange(e.target.value); setActive(-1); setOpen(true); }}
       onKeyDown={(e) => {
@@ -69,16 +69,15 @@ function SearchSuggestions({ mode, value, onChange }) {
         if (e.key === "Enter" && open && matches[active]) { e.preventDefault(); choose(matches[active]); }
       }} />
     {open && <div id="home-search-options" className="home-suggestions" role="listbox" aria-label={mode === "service" ? "Service suggestions" : "Medication suggestions"}>
-      {matches.length ? matches.map((item, index) => <div id={`home-option-${item.id}`} role="option" aria-selected={active === index} key={item.id} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(item)}><Search aria-hidden="true" /><span>{label(item)}</span></div>) : <p>No matching demo items.</p>}
+      {matches.length ? matches.map((item, index) => <div id={`home-option-${item.id}`} role="option" aria-selected={active === index} key={item.id} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(item)}><Search aria-hidden="true" /><span>{label(item)}</span></div>) : <p>No matching items.</p>}
     </div>}
   </div>;
 }
-function Finder() {
+function Finder({ onSearch }) {
   const [mode, set] = useState("service"),
     [area, A] = useState("Nairobi"),
     [q, Q] = useState(""),
     [error, setError] = useState("");
-  const go = useNavigate();
   return (
     <form
       className="finder"
@@ -86,17 +85,12 @@ function Finder() {
         e.preventDefault();
         const match = catalog.find((item) => item.type === mode && item.name.toLowerCase() === q.trim().toLowerCase());
         if (mode === "medication" && !match) {
-          setError("Choose a medication from the demo suggestions.");
+          setError("Choose a medication from the suggestions.");
           document.getElementById("search-item")?.focus();
           return;
         }
         setError("");
-        go(
-          "/" +
-            (mode === "service" ? "services" : "medicines") +
-            "?" +
-            new URLSearchParams({ q: match?.name || q.trim(), area }),
-        );
+        onSearch({ type: mode, q: match?.name || q.trim(), area });
       }}
     >
       <Tabs value={mode} onValueChange={(value) => { set(value); Q(""); setError(""); }}>
@@ -107,7 +101,7 @@ function Finder() {
       </Tabs>
       <div className="fields">
         <div className="home-field">
-          <span id="search-item-label">{mode === "service" ? "Medical service" : "Demo medication"}</span>
+          <span id="search-item-label">{mode === "service" ? "Medical service" : "Medication"}</span>
           <SearchSuggestions mode={mode} value={q} onChange={(value) => { Q(value); setError(""); }} />
           {error && <span role="alert" className="home-search-error">{error}</span>}
         </div>
@@ -130,7 +124,18 @@ const tiles = [
   ["Blood test", "Explore laboratory tests", TestTubeDiagonal, "blood"],
   ["X-ray", "Find imaging services", Bone, "xray"],
 ];
-function Home() {
+function Home({ send }) {
+  const [query, setQuery] = useState(null);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  useEffect(() => {
+    if (!query) return;
+    let active = true; setLoading(true); setSearchError('');
+    search(query.type, query.q, query.area).then(rows => { if (active) setResults(rows); }).catch(e => { if (active) setSearchError(e.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [query]);
+  useEffect(() => { if (query) document.getElementById('quick-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [query]);
   return (
     <div className="home">
       <div className="home-hero">
@@ -143,9 +148,10 @@ function Home() {
           <img src="/patient/nairobi-portrait-2.jpg" alt="Portrait of a woman in Nairobi" />
 
         </div>
-        <div className="home-search"><Finder /><p className="home-disclosure">Synthetic demo data · Prices are estimates until confirmed</p></div>
+        <div className="home-search"><Finder onSearch={setQuery} /><p className="home-disclosure">Prices are estimates until confirmed</p></div>
       </div>
 
+      {query && <section id="quick-results" className="quick-results" aria-live="polite"><h2>{query.type === 'medication' ? 'Medication' : 'Medical service'} results {query.q && `for ${query.q}`}</h2><p>In {query.area} · Prices and availability are provider-reported.</p>{loading ? <p>Searching…</p> : searchError ? <p role="alert">{searchError}</p> : results.length ? results.map(row => <article key={row.id} className="quick-result"><div><span>{label(row.item)}</span><h3><Link to={'/facility/' + row.provider.id}>{row.provider.name}</Link></h3><p>{row.provider.location} · {row.available && row.stock_quantity !== 0 ? 'Reported available' : 'Unavailable'}</p><small>Updated {new Date(row.updated_at).toLocaleString('en-KE', { timeZone:'Africa/Nairobi' })} EAT</small></div><div><strong>{money(row.price)}</strong><p>Estimate per {row.pricing_unit}</p><button disabled={!row.available || row.stock_quantity === 0} onClick={() => send([{listing_id:row.id, quantity:1}])}>Request confirmation</button></div></article>) : <p>No matches. Try another term or location.</p>}{query.type === 'medication' && <Link to={'/medicines?' + new URLSearchParams({q:query.q, area:query.area})}>Compare a complete prescription <ArrowRight /></Link>}</section>}
     </div>
   );
 }
@@ -182,184 +188,6 @@ function Listing({ row, send }) {
     </article>
   );
 }
-function Services({ send }) {
-  const [p, P] = useSearchParams(),
-    q = p.get("q") || "",
-    area = p.get("area") || "Nairobi",
-    [rows, R] = useState([]);
-  useEffect(() => {
-    let active = true;
-    search("service", q.trim(), area).then((v) => active && R(v));
-    return () => {
-      active = false;
-    };
-  }, [q, area]);
-  return (
-    <>
-      <h1>Medical services</h1>
-      <div className="fields box">
-        <label>
-          Search services
-          <input
-            value={q}
-            placeholder="e.g. Ultrasound"
-            onChange={(e) => P({ q: e.target.value, area }, { replace: true })}
-          />
-        </label>
-        <Area value={area} onChange={(area) => P({ q, area })} />
-      </div>
-      <h2>{rows.length} listings</h2>
-      {rows.map((r) => (
-        <Listing key={r.id} row={r} send={send} />
-      ))}
-      {!rows.length && <p>Try a different service or area.</p>}
-    </>
-  );
-}
-const meds = catalog.filter((i) => i.type === "medication");
-function Medicines({ send }) {
-  const [p] = useSearchParams(),
-    [area, A] = useState(p.get("area") || "Nairobi"),
-    [items, S] = useState([
-      {
-        item_id: (meds.find((i) => i.name === p.get("q")) || meds[0]).id,
-        quantity: 1,
-      },
-    ]),
-    [options, O] = useState([]);
-  useEffect(() => {
-    let active = true;
-    O([]);
-    if (items.every((i) => Number.isSafeInteger(i.quantity) && i.quantity > 0))
-      compare(items, area).then((v) => active && O(v));
-    return () => {
-      active = false;
-    };
-  }, [items, area]);
-  const update = (n, v) =>
-    S(items.map((i, k) => (k === n ? { ...i, ...v } : i)));
-  return (
-    <>
-      <h1>Compare medications</h1>
-      <p>Build a sample prescription using the demo catalog.</p>
-      <div className="box">
-        <Area value={area} onChange={A} />
-        {items.map((i, n) => (
-          <div className="fields" key={n}>
-            <label>
-              Medication
-              <select
-                value={i.item_id}
-                onChange={(e) => update(n, { item_id: e.target.value })}
-              >
-                {meds
-                  .filter(
-                    (m) =>
-                      m.id === i.item_id ||
-                      !items.some((v) => v.item_id === m.id),
-                  )
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {label(m)}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Quantity
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={i.quantity}
-                onChange={(e) =>
-                  update(n, {
-                    quantity:
-                      e.target.value === "" ? "" : Number(e.target.value),
-                  })
-                }
-              />
-            </label>
-            {items.length > 1 && (
-              <button
-                aria-label={
-                  "Remove " + label(meds.find((m) => m.id === i.item_id))
-                }
-                onClick={() => S(items.filter((_, k) => k !== n))}
-              >
-                <Trash2 />
-              </button>
-            )}
-          </div>
-        ))}
-        {items.length < meds.length && (
-          <button
-            onClick={() =>
-              S([
-                ...items,
-                {
-                  item_id: meds.find(
-                    (m) => !items.some((i) => i.item_id === m.id),
-                  ).id,
-                  quantity: 1,
-                },
-              ])
-            }
-          >
-            <Plus /> Add medication
-          </button>
-        )}
-      </div>
-      {!options.length && <p>Enter a positive whole quantity for each item.</p>}
-      {[true, false].map(
-        (complete) =>
-          options.some((o) => o.complete === complete) && (
-            <div key={String(complete)}>
-              <h2>
-                {complete ? "Complete prescriptions" : "Partial availability"}
-              </h2>
-              {options
-                .filter((o) => o.complete === complete)
-                .map((o) => (
-                  <article key={o.provider_id}>
-                    <div>
-                      <h3>
-                        <Link to={"/facility/" + o.provider_id}>
-                          {detail(o.provider_id)[0].provider.name}
-                        </Link>
-                      </h3>
-                      {o.lines.map((l) => (
-                        <p key={l.item_id}>
-                          {label(meds.find((i) => i.id === l.item_id))} ·{" "}
-                          {l.quantity} × {money(l.unit_price)}
-                        </p>
-                      ))}
-                      {o.missing_item_ids.map((id) => (
-                        <p key={id}>
-                          Unavailable in requested quantity ·{" "}
-                          {label(meds.find((i) => i.id === id))}
-                        </p>
-                      ))}
-                    </div>
-                    <div>
-                      <strong>{money(o.total ?? o.available_subtotal)}</strong>
-                      <p>
-                        {complete ? "Estimated total" : "Available items only"}
-                      </p>
-                      {complete && (
-                        <button onClick={() => send(o.lines)}>
-                          Request confirmation
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
-            </div>
-          ),
-      )}
-    </>
-  );
-}
 function Facility({ send }) {
   const rows = detail(useParams().id);
   return rows.length ? (
@@ -384,18 +212,21 @@ function Facility({ send }) {
   );
 }
 function Tracking() {
-  const [rows, R] = useState(requests);
+  const [rows, R] = useState([]);
+  const [loadError, setLoadError] = useState('');
   useEffect(() => {
-    const t = setInterval(() => R(requests()), 1000);
-    return () => clearInterval(t);
+    let active = true;
+    const refresh = () => requests().then(value => { if (active) { R(value); setLoadError(''); } }).catch(e => { if (active) setLoadError(e.message); });
+    refresh(); const t = setInterval(refresh, 10000);
+    return () => { active = false; clearInterval(t); };
   }, []);
   return (
     <>
       <h1>My requests</h1>
       <p>
-        Demo enquiries saved in this browser. Pending enquiries expire after 30
-        minutes.
+        Requests are refreshed automatically. Pending enquiries expire after 30 minutes.
       </p>
+      {loadError && <p role="alert">{loadError}</p>}
       {rows.length ? (
         <>
           <h2>
@@ -421,7 +252,7 @@ function Tracking() {
                 </strong>
                 <p>
                   {r.status === "confirmed"
-                    ? "Demo confirmed price"
+                    ? (getSource().source === "demo" ? "Demo confirmed price" : "Provider-confirmed price")
                     : r.status === "expired"
                       ? "Expired enquiry"
                       : "Estimated · No confirmed price"}
@@ -433,7 +264,7 @@ function Tracking() {
                   })}{" "}
                   EAT
                 </p>
-                {r.status === "pending" && (
+                {r.status === "pending" && getSource().source === "demo" && (
                   <button onClick={() => R(simulateReply(r.id))}>
                     Simulate provider confirmation
                   </button>
@@ -456,16 +287,19 @@ function Tracking() {
 function Layout() {
   const go = useNavigate(),
     [error, E] = useState("");
-  function send(lines) {
+  const [source, setSource] = useState(getSource());
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { const update = () => setSource(getSource()); window.addEventListener('afyalink-source', update); initialize().catch(() => {}); return () => window.removeEventListener('afyalink-source', update); }, []);
+  async function send(lines) {
+    if (busy) return;
+    setBusy(true);
     try {
-      enquire(lines);
+      await enquire(lines);
       E("");
       go("/requests");
-    } catch {
-      E(
-        "Your browser could not save the request. Enable local storage and try again.",
-      );
-    }
+    } catch (e) {
+      E(e.message || 'Unable to submit request. Please try again.');
+    } finally { setBusy(false); }
   }
   return (
     <div className="patient">
@@ -486,18 +320,19 @@ function Layout() {
         </div>
       </div>
       <main>
+        <p role="status" className="source-notice">{source.notice}</p>
         {error && <p role="alert">{error}</p>}
-        <Routes>
-          <Route path="/" element={<Home />} />
+        {source.source === 'loading' ? <p>Loading the care directory…</p> : source.source === 'error' ? <p>Unable to load the directory. Please try again later.</p> : <Routes>
+          <Route path="/" element={<Home send={send} />} />
           <Route path="/services" element={<ServicesPage send={send} />} />
           <Route path="/medicines" element={<MedicinesPage send={send} />} />
           <Route path="/facility/:id" element={<Facility send={send} />} />
           <Route path="/requests" element={<Tracking />} />
           <Route path="*" element={<Link to="/">Return to Find care</Link>} />
-        </Routes>
+        </Routes>}
       </main>
       <footer>
-        AfyaLink · Synthetic demo data{" "}
+        AfyaLink · Healthcare information{" "}
         <a href="#/provider">
           Provider dashboard <ArrowUpRight />
         </a>

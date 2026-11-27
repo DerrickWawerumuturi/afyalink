@@ -623,3 +623,15 @@
 .home-suggestions,.home-select-content { border-radius:14px; padding:6px; }
 .home-suggestions [role=option],.home-select-content [data-slot="select-item"] { border-radius:9px; }
 @media(max-width:700px) { .home .finder { border-radius:20px; padding:18px; } .home .finder .fields { flex-direction:column; align-items:stretch; gap:14px; margin-top:16px; } .home .home-tabs { width:100%; } .home .home-tabs button { flex:1; padding:9px 10px; } .home .finder .primary { width:100%; } }
+.app-shell { position:relative; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:10px max(5%,calc((100% - 1120px)/2)); background:#173e32; color:white; font:500 13px/1.4 system-ui,sans-serif; }
+.app-shell nav { display:flex; gap:20px; } .app-shell a { color:white; } .app-shell button { background:white; color:#173e32; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+.app-signin { position:absolute; z-index:1000; right:5%; top:100%; width:min(320px,90vw); display:grid; gap:10px; padding:18px; color:#173e32; background:white; box-shadow:0 8px 30px #142e2240; border-radius:12px; }
+.app-signin label { display:grid; gap:4px; } .app-signin input { min-height:40px; border:1px solid #b8cabc; border-radius:7px; padding:8px; } .app-signin button { background:#174d3f; color:white; }
+.patient .source-notice { max-width:1120px; margin:0 auto; padding:8px 20px; font-size:12px; color:#3c6050; }
+.quick-results { scroll-margin-top:20px; max-width:1120px; margin:28px auto 60px; padding:24px; background:#fff; border-radius:18px; color:#173b32; }
+.quick-results h2 { font:400 32px/1.15 Georgia,serif; margin:0 0 8px; } .quick-results > p { margin:0 0 18px; }
+.patient .quick-result { display:flex; justify-content:space-between; gap:20px; padding:20px 0; border:0; border-top:1px solid #d8e2d9; margin:0; background:transparent; }
+.quick-result h3 { font:600 19px/1.2 system-ui,sans-serif; margin:8px 0; } .quick-result p { margin:4px 0; } .quick-result > div:last-child { min-width:180px; } .quick-result strong { font-size:24px; }
+.quick-result button { margin-top:10px; border:0; border-radius:10px; padding:10px 14px; background:#174d3f; color:white; } .quick-result button:disabled { opacity:.45; }
+.quick-results > a { display:inline-flex; align-items:center; gap:8px; margin-top:18px; font-weight:700; } .quick-results > a svg { width:18px; }
+@media(max-width:700px) { .quick-results { margin:20px; padding:18px; } .patient .quick-result { flex-direction:column; gap:10px; } .app-shell { flex-wrap:wrap; } }

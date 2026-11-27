@@ -1,137 +1,85 @@
-const uuid = (prefix, n) =>
-  prefix + "0000000-0000-4000-8000-" + String(n).padStart(12, "0");
-const names = [
-  "Ultrasound",
-  "Blood test",
-  "X-ray",
-  "Paracetamol",
-  "Amoxicillin",
-];
-export const catalog = names.map((name, i) => ({
-  id: uuid(2, i + 1),
-  name,
-  type: i < 3 ? "service" : "medication",
-  strength: i < 3 ? null : "500 mg",
-  dosage_form: i === 3 ? "tablet" : i === 4 ? "capsule" : null,
-  unit: ["scan", "test", "scan", "tablet", "capsule"][i],
-}));
-const providers = [
-  "Acacia Medical Centre",
-  "Maua Community Clinic",
-  "Kijani Health Centre",
-  "Acacia Pharmacy",
-  "Maua Pharmacy",
-  "Kijani Pharmacy",
-].map((name, i) => ({
-  id: uuid(1, i + 1),
-  name,
-  location: ["Westlands", "Kilimani", "Parklands"][i % 3] + ", Nairobi",
-  type: i < 3 ? "hospital" : "pharmacy",
-  verified: false,
-}));
-const rows = providers.flatMap((provider, i) =>
-  catalog
-    .filter((item) => item.type === (i < 3 ? "service" : "medication"))
-    .map((item, j) => ({
-      id: uuid(3, i * 5 + j + 1),
-      provider,
-      item,
-      price:
-        (i < 3 ? [1200, 450, 950] : [5, 12])[j] + (i % 3) * (i < 3 ? 250 : 2),
-      currency: "KES",
-      pricing_unit: item.unit,
-      available: !(i === 2 && j === 0),
-      stock_quantity: i < 3 ? null : i === 5 && j === 1 ? 0 : 100,
-      updated_at: "2026-11-27T07:00:00Z",
-    })),
-);
-export const search = async (type, q, area) =>
-  rows
-    .filter(
-      (r) =>
-        r.item.type === type &&
-        r.item.name.toLowerCase().includes(q.toLowerCase()) &&
-        r.provider.location.includes(area),
-    )
-    .sort((a, b) => a.price - b.price);
-export const detail = (id) => rows.filter((r) => r.provider.id === id);
-export const compare = async (items, area) =>
-  providers
-    .slice(3)
-    .filter((p) => p.location.includes(area))
-    .map((p) => {
-      const lines = [],
-        missing_item_ids = [];
-      for (const { item_id, quantity } of items) {
-        const r = rows.find((r) => r.provider === p && r.item.id === item_id);
-        if (!r?.available || r.stock_quantity < quantity) {
-          missing_item_ids.push(item_id);
-          continue;
-        }
-        lines.push({
-          item_id,
-          listing_id: r.id,
-          quantity,
-          unit_price: r.price,
-          subtotal: quantity * r.price,
-        });
-      }
-      const subtotal = lines.reduce((s, l) => s + l.subtotal, 0);
-      return {
-        provider_id: p.id,
-        lines,
-        missing_item_ids,
-        complete: !missing_item_ids.length,
-        total: missing_item_ids.length ? null : subtotal,
-        available_subtotal: subtotal,
-        currency: "KES",
-      };
-    })
-    .sort(
-      (a, b) =>
-        Number(b.complete) - Number(a.complete) ||
-        (a.total ?? 0) - (b.total ?? 0),
-    );
-const key = "afyalink.synthetic.requests.v1";
-export function requests() {
-  return JSON.parse(localStorage.getItem(key) || "[]").map((r) => ({
-    ...r,
-    status:
-      ["pending", "confirmed"].includes(r.status) &&
-      Date.parse(r.expires_at) <= Date.now()
-        ? "expired"
-        : r.status,
-  }));
-}
-export function enquire(lines) {
-  const group = crypto.randomUUID(),
-    now = Date.now();
-  const added = lines.map(({ listing_id, quantity }) => ({
-    id: crypto.randomUUID(),
-    listing_id,
-    quantity,
-    request_group_id: group,
-    status: "pending",
-    confirmed_price: null,
-    currency: "KES",
-    created_at: new Date(now).toISOString(),
-    expires_at: new Date(now + 1800000).toISOString(),
-    listing: rows.find((r) => r.id === listing_id),
-  }));
-  localStorage.setItem(key, JSON.stringify([...added, ...requests()]));
-}
+import * as demo from './demoApi';
+import { getSession } from './auth';
 
-export function simulateReply(id) {
-  const updated = requests().map((request) =>
-    request.id === id && request.status === "pending"
-      ? {
-          ...request,
-          status: "confirmed",
-          confirmed_price: request.listing.price,
-          expires_at: new Date(Date.now() + 3600000).toISOString(),
-        }
-      : request,
-  );
-  localStorage.setItem(key, JSON.stringify(updated));
-  return updated;
+const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+const idKey = 'afyalink.live.requests.v1';
+const snapshotKey = 'afyalink.live.listings.v1';
+export const catalog = [];
+const listings = new Map();
+let source = 'loading';
+let notice = 'Connecting to the care directory…';
+const announce = () => window.dispatchEvent(new Event('afyalink-source'));
+function mode(value, text) { source = value; notice = text; announce(); }
+export const getSource = () => ({ source, notice });
+function cache(rows) { rows.forEach(row => listings.set(row.id, row)); try { sessionStorage.setItem(snapshotKey, JSON.stringify([...listings.values()])); } catch {} }
+try { JSON.parse(sessionStorage.getItem(snapshotKey) || '[]').forEach(row => listings.set(row.id, row)); } catch {}
+function replaceCatalog(items) { catalog.splice(0, catalog.length, ...items); announce(); }
+async function call(path, options = {}) {
+  let response;
+  const session = options.auth ? await getSession() : null;
+  if (options.auth && !session) throw Object.assign(new Error('Please sign in to send or view real requests.'), { status: 401 });
+  try {
+    response = await fetch(base + path, { method: options.method || 'GET', headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) }, ...(options.body ? { body: JSON.stringify(options.body) } : {}) });
+  } catch { throw Object.assign(new Error('The care directory is unavailable.'), { status: 0 }); }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw Object.assign(new Error(payload.error?.message || `Request failed (${response.status})`), { status: response.status, code: payload.error?.code, fields: payload.error?.fields });
+  return payload;
 }
+function canFallback(e) { return e.status === 0 || e.status === 503; }
+export async function initialize() {
+  try {
+    async function allListings(type) {
+      const rows = []; let page = 1, total = 0;
+      do {
+        const response = await call(`/listings?${new URLSearchParams({ type, limit: '100', page: String(page) })}`);
+        rows.push(...response.data); total = response.meta?.total ?? rows.length;
+        if (!response.data.length) break;
+        page++;
+      } while (rows.length < total);
+      return rows;
+    }
+    const [services, medicines] = await Promise.all(['service', 'medication'].map(allListings));
+    const rows = [...services, ...medicines]; listings.clear(); cache(rows);
+    replaceCatalog([...new Map(rows.map(row => [row.item.id, row.item])).values()]);
+    mode('live', 'Connected to the care directory. Availability and prices are provider-reported.');
+  } catch (e) {
+    if (!canFallback(e)) { mode('error', e.message); throw e; }
+    replaceCatalog(demo.catalog); mode('demo', 'Demo data: the care directory is unavailable. Requests remain on this device.');
+  }
+}
+export async function search(type, q = '', area = '') {
+  if (source === 'demo') return demo.search(type, q, area);
+  const query = new URLSearchParams({ type, limit: '100' });
+  if (q.trim()) query.set('q', q.trim());
+  if (area.trim()) query.set('location', area.trim());
+  const result = await call(`/listings?${query}`); cache(result.data); return result.data;
+}
+export function detail(id) { return source === 'demo' ? demo.detail(id) : [...listings.values()].filter(row => row.provider.id === id); }
+export async function compare(items, area) {
+  if (source === 'demo') return demo.compare(items, area);
+  return (await call('/compare', { method:'POST', body:{ items:items.map(({item_id, quantity}) => ({ item_id, quantity })), ...(area.trim() ? {location:area.trim()} : {}) } })).data;
+}
+async function sessionKey() { const session = await getSession(); if (!session) throw Object.assign(new Error('Please sign in to send or view real requests.'), {status:401}); return `${idKey}.${session.user.id}`; }
+export async function enquire(lines) {
+  if (source === 'demo') return demo.enquire(lines);
+  if (!lines.length || lines.some(line => !line.listing_id || !Number.isSafeInteger(line.quantity) || line.quantity <= 0)) throw new Error('Each request needs a valid listing and positive whole quantity.');
+  const key = await sessionKey();
+  const group = lines.length > 1 ? crypto.randomUUID() : null;
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  for (const { listing_id, quantity } of lines) {
+    const listing = listings.get(listing_id);
+    if (!listing) throw new Error('Listing details are unavailable. Search again before requesting confirmation.');
+    try {
+      const result = await call('/requests', { method:'POST', auth:true, body:{ listing_id, quantity, request_group_id:group } });
+      saved.unshift({ id:result.data.id, listing });
+      localStorage.setItem(key, JSON.stringify(saved));
+    } catch (e) { if (saved.length) e.message += ' Any requests already submitted remain in My requests.'; throw e; }
+  }
+}
+export async function requests() {
+  if (source === 'demo') return demo.requests();
+  const key = await sessionKey();
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  return Promise.all(saved.map(async entry => ({ ...(await call(`/requests/${encodeURIComponent(entry.id)}`, {auth:true})).data, listing:entry.listing })));
+}
+export function simulateReply(id) { if (source !== 'demo') throw new Error('Simulated confirmations are only available in demo mode.'); return demo.simulateReply(id); }
