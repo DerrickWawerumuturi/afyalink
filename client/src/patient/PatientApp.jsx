@@ -4,19 +4,16 @@ import {
   Routes,
   Route,
   Link,
-  NavLink,
   useNavigate,
   useParams,
   useSearchParams,
 } from "react-router-dom";
 import {
-  Cross,
   Stethoscope,
   Pill,
   MapPin,
   Search,
   ArrowRight,
-  ClipboardList,
   ScanLine,
   TestTubeDiagonal,
   Bone,
@@ -303,22 +300,6 @@ function Layout() {
   }
   return (
     <div className="patient">
-      <div className="top">
-        <div className="bar">
-          <Link className="brand" to="/">
-            <Cross /> AfyaLink
-          </Link>
-          <nav>
-            <NavLink end to="/">
-              Find care
-            </NavLink>
-            <NavLink to="/medicines">Medications</NavLink>
-            <NavLink to="/requests">
-              <ClipboardList /> My requests
-            </NavLink>
-          </nav>
-        </div>
-      </div>
       <main>
         <p role="status" className="source-notice">{source.notice}</p>
         {error && <p role="alert">{error}</p>}

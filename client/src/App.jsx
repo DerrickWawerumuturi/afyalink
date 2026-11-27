@@ -37,8 +37,17 @@ export default function App() {
     const { error } = await auth.auth.signInWithPassword({ email, password });
     if (error) setError(error.message); else { setPassword(''); setOpen(false); window.location.reload(); }
   }
-  return <><div className="app-shell"><nav aria-label="Application"><a href="#/">Patient app</a><a href="#/provider">Provider dashboard</a></nav>
-    {auth ? session ? <button onClick={async () => { await auth.auth.signOut(); window.location.reload(); }}>Sign out</button> : <button onClick={() => setOpen(!open)}>Sign in</button> : <span>Sign-in not configured</span>}
+  return <><div className="app-shell">
+    <a className="app-brand" href="#/" aria-label="AfyaLink home">AfyaLink<span aria-hidden="true">.</span></a>
+    <div className="app-nav-actions">
+      <nav aria-label="Main navigation">
+        <a href="#/" aria-current={(!route || route === '#/' || route.startsWith('#/services') || route.startsWith('#/facility/')) ? 'page' : undefined}>Find care</a>
+        <a href="#/medicines" aria-current={route.startsWith('#/medicines') ? 'page' : undefined}>Medications</a>
+        <a href="#/requests" aria-current={route.startsWith('#/requests') ? 'page' : undefined}>My requests</a>
+        <a href="#/provider" aria-current={route === '#/provider' ? 'page' : undefined}>For providers</a>
+      </nav>
+      {auth ? session ? <button className="app-auth-button" onClick={async () => { await auth.auth.signOut(); window.location.reload(); }}>Sign out</button> : <button className="app-auth-button" onClick={() => setOpen(!open)} aria-expanded={open}>Sign in</button> : <span className="app-auth-unavailable">Sign-in unavailable</span>}
+    </div>
     {open && auth && <form onSubmit={signIn} className="app-signin"><label>Email<input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label><button>Sign in</button>{error && <p role="alert">{error}</p>}</form>}
   </div>{!ready ? <main><p role="status">Starting AfyaLink…</p></main> : route === '#/provider' ? <main><ProviderDashboard /></main> : <PatientApp />}</>;
 }
