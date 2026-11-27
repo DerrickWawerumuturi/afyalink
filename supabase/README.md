@@ -130,6 +130,17 @@ A provider user with more than one membership must send `x-provider-id` on provi
 | `listings` | 8 |
 | `provider_memberships` | 0 in seed; 2 after demo setup (hospital + pharmacy) |
 
+### Optional bulk demo dataset
+
+`seed-demo-500.sql` adds **50 clearly synthetic providers** (25 hospitals, 25 pharmacies), **20 catalog items** and **500 listings** (idempotent, deterministic UUIDs, no real data). Apply it after the base seed:
+
+```bash
+npx supabase@3.4.0 db query --remote -f supabase/seed-demo-500.sql --yes
+# local stack alternative: psql "$DATABASE_URL" -f supabase/seed-demo-500.sql
+```
+
+Combined with the base seed this yields 54 providers, 25 catalog items and 508 listings.
+
 ## Verification
 
 ```sql
@@ -148,7 +159,7 @@ select * from public.listings l
 
 The last query must return zero rows.
 
-Observed after provisioning: 4 providers, 5 catalog items, 8 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The full E2E suite passed against both local and hosted targets.
+Observed after provisioning plus the optional bulk demo seed: 54 providers, 25 catalog items, 508 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The 31-check E2E suite passed against both local and hosted targets.
 
 ## Security notes
 
