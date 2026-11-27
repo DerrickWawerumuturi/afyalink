@@ -1,7 +1,7 @@
 import * as demo from './demoApi';
 import { getSession } from './auth';
 
-const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+const base = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:5000/api');
 const idKey = 'afyalink.live.requests.v1';
 const snapshotKey = 'afyalink.live.listings.v1';
 export const catalog = [];
