@@ -1,6 +1,6 @@
 # Database setup — Dev 2
 
-Status: **not yet applied to any database.** The schema, seed and API role are written and committed; a Supabase development project must still be provisioned and migrated. All rows are synthetic.
+Status: **verified on the local Supabase stack; not yet applied to a hosted project.** The schema, seed and API role are committed and were exercised end to end locally with CLI 3.4.0. Provision a hosted Supabase development project when the team is ready. All rows are synthetic.
 
 ## Contract
 
@@ -40,6 +40,35 @@ npx supabase@3.4.0 stop
 ```
 
 `db reset` is destructive and intended for local development only.
+
+### Verified local bootstrap
+
+The full flow was provisioned and tested locally on 2026-11-27. `supabase/config.jsonc` is committed so the team shares ports and auth settings (client site URL `http://localhost:5173`).
+
+```bash
+npx supabase@3.4.0 start
+npx supabase@3.4.0 db reset        # migration + seed
+
+# Create or refresh the API role (idempotent; omit the password from shell history in real use)
+DB=$(docker ps --filter name=supabase_db --format '{{.Names}}' | head -1)
+docker exec -i "$DB" psql -U postgres -d postgres \
+  -v api_password='<PRIVATE_PASSWORD>' -f - < supabase/api-role.sql
+
+# Create synthetic demo users through the Auth admin API
+curl -s -X POST http://127.0.0.1:54321/auth/v1/admin/users \
+  -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"hospital.demo@afyalink.test","password":"<PRIVATE_PASSWORD>","email_confirm":true}'
+
+# Assign trusted memberships using the returned user UUIDs
+docker exec -i "$DB" psql -U postgres -d postgres -c "
+insert into provider_memberships (user_id, provider_id) values
+  ('<hospital-user-uuid>', '10000000-0000-4000-8000-000000000001'),
+  ('<pharmacy-user-uuid>', '10000000-0000-4000-8000-000000000002')
+on conflict do nothing;"
+```
+
+Point `server/.env` at the local credentials (`DATABASE_SSL=false`) and run `npm run dev:server`. Verified end to end: health, search, compare (complete/partial), patient request, provider confirm/decline, expiry on read, terminal-state conflict, cross-owner denial, and listing create/update/duplicate/incompatibility. The provider dashboard fixtures align on catalog IDs `...0001`–`...0004`; item `...0003` is "Complete blood count" with unit `test`.
 
 ## Hosted development workflow
 
@@ -89,7 +118,7 @@ A provider user with more than one membership must send `x-provider-id` on provi
 | --- | --- |
 | `providers` | 4 (2 hospitals, 2 pharmacies) |
 | `catalog_items` | 4 (2 services, 2 medications) |
-| `listings` | 7 |
+| `listings` | 8 |
 | `provider_memberships` | 0 (assigned after Auth demo users exist) |
 
 ## Verification
