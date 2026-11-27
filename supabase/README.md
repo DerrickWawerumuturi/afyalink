@@ -126,7 +126,7 @@ A provider user with more than one membership must send `x-provider-id` on provi
 | Table | Rows |
 | --- | --- |
 | `providers` | 4 (2 hospitals, 2 pharmacies) |
-| `catalog_items` | 4 (2 services, 2 medications) |
+| `catalog_items` | 5 (2 services, 3 medications) |
 | `listings` | 8 |
 | `provider_memberships` | 0 in seed; 2 after demo setup (hospital + pharmacy) |
 
@@ -148,7 +148,7 @@ select * from public.listings l
 
 The last query must return zero rows.
 
-Observed after provisioning: 4 providers, 4 catalog items, 8 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The full 23-check E2E passed against both local and hosted targets.
+Observed after provisioning: 4 providers, 5 catalog items, 8 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The full E2E suite passed against both local and hosted targets.
 
 ## Security notes
 
