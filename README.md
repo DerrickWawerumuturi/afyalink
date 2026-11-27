@@ -118,6 +118,8 @@ The server implements the routes below; details, examples, errors and authorizat
 | GET | `/api/provider/requests` | Provider reads incoming enquiries |
 | PATCH | `/api/provider/requests/:id` | Provider confirms or declines an enquiry |
 
+The provider workspace is gated in the client: it checks `GET /provider/profile` before loading any provider data. Signed-out visitors see a sign-in prompt, authenticated accounts without a provider membership see an access-denied screen, and only trusted provider members can load listings, enquiries or appointments. The patient app stays open, but patient-specific actions still require sign-in.
+
 ## Local setup
 
 Prerequisites: Node.js 22.12+ and npm, Git, and a team Supabase development project when database work starts. Node 22.17 is recorded in `.nvmrc`. Dependencies are pinned in workspace manifests and the root lockfile.

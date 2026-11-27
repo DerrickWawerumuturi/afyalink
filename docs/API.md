@@ -77,7 +77,7 @@ Insufficient stock or unavailable items are missing. For partial options, `compl
 {"data":{"id":"10000000-0000-4000-8000-000000000001","name":"Demo Afya Hospital","type":"hospital","location":"Nairobi","verified":false}}
 ```
 
-Type and verification are controlled by trusted setup, not user-editable metadata. Profile editing is outside the MVP.
+Type and verification are controlled by trusted setup, not user-editable metadata. Profile editing is outside the MVP. The client uses this route as the provider-access gate: 200 means the signed-in user is a provider member, 403 means the account is not linked to a provider, and 401 means sign-in is required.
 
 ## Provider listings
 

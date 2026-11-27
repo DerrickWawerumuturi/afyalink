@@ -106,6 +106,18 @@ export function loadCatalog() {
   return demoCatalog();
 }
 
+export async function checkProviderAccess() {
+  if (!(await sessionAvailable())) return { status: 'signed_out' };
+  try {
+    const payload = await api('/provider/profile');
+    return { status: 'granted', profile: payload.data };
+  } catch (error) {
+    if (error.status === 403) return { status: 'denied' };
+    if (error.status === 401) return { status: 'signed_out' };
+    throw error;
+  }
+}
+
 export async function loadProfile() {
   demoMode = !(await sessionAvailable());
   if (demoMode) return { data: demoGetProfile(), source: 'demo' };

@@ -1656,3 +1656,39 @@
 .provider-badge-cancelled { background: #f1f5f3; color: #6b807c; }
 .appointment-provider-actions { margin-top: 0.9rem; }
 .appointment-card-notes { margin: 12px 0 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); font-size: 0.83rem; font-style: italic; }
+
+/* Provider access gate */
+.provider-access {
+  display: grid;
+  place-items: center;
+  gap: 0.55rem;
+  max-width: 34rem;
+  margin: 2rem auto;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.provider-access-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.35rem;
+  border-radius: 1rem;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+.provider-access-icon svg { width: 1.6rem; height: 1.6rem; }
+.provider-access-icon.access-denied { background: var(--danger-soft); color: var(--danger); }
+.provider-access-icon.access-error { background: var(--amber-soft); color: var(--amber); }
+.provider-access h2 { margin: 0; font-size: 1.35rem; letter-spacing: -0.02em; }
+.provider-access p { max-width: 28rem; margin: 0; color: var(--muted); font-size: 0.88rem; }
+.provider-access-user { color: var(--ink) !important; font-size: 0.78rem !important; }
+.provider-access-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 0.9rem; }
+@media (max-width: 480px) {
+  .provider-access-actions { flex-direction: column; width: 100%; }
+  .provider-access-actions > * { width: 100%; justify-content: center; }
+}

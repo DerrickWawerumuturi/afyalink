@@ -4,11 +4,14 @@ import {
   BadgeCheck,
   Building2,
   CalendarDays,
+  CircleAlert,
   Inbox,
   LayoutDashboard,
   MapPin,
   Pill,
+  LogIn,
   RefreshCw,
+  ShieldX,
   Tags,
   UserRound,
 } from 'lucide-react';
@@ -25,6 +28,7 @@ import {
   loadAppointments,
   loadCatalog,
   loadListings,
+  checkProviderAccess,
   loadProfile,
   loadRequests,
   resetDemoData,
@@ -53,7 +57,7 @@ function describeError(error) {
   return fields ? `${error.message} ${fields}` : error.message || 'Something went wrong.';
 }
 
-export default function ProviderDashboard() {
+export default function ProviderDashboard({ session }) {
   const [tab, setTab] = useState('overview');
   const [listings, setListings] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -62,6 +66,8 @@ export default function ProviderDashboard() {
   const [profile, setProfile] = useState(null);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [access, setAccess] = useState(session ? 'checking' : 'signed_out');
+  const [accessAttempt, setAccessAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -103,8 +109,29 @@ export default function ProviderDashboard() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    if (!session) {
+      setAccess('signed_out');
+      return () => { active = false; };
+    }
+    setAccess('checking');
+    checkProviderAccess()
+      .then((result) => {
+        if (!active) return;
+        if (result.status === 'granted') {
+          setProfile(result.profile);
+          setAccess('granted');
+        } else {
+          setAccess(result.status);
+        }
+      })
+      .catch(() => { if (active) setAccess('error'); });
+    return () => { active = false; };
+  }, [session?.user?.id, accessAttempt]);
+
+  useEffect(() => {
+    if (access === 'granted') load();
+  }, [access, load]);
 
   function changePage(section, page) {
     setPages((current) => ({ ...current, [section]: page }));
@@ -223,6 +250,49 @@ export default function ProviderDashboard() {
   const pendingCount = requests.filter((request) => effectiveStatus(request) === 'pending').length;
   const demo = isDemoMode();
   const tabCounts = { requests: meta.requests.total, appointments: meta.appointments.total, listings: meta.listings.total };
+
+
+  if (access !== 'granted') {
+    const gate = {
+      checking: { icon: RefreshCw, title: 'Checking provider access…', copy: 'Verifying your provider membership.' },
+      signed_out: { icon: LogIn, title: 'Provider sign-in required', copy: 'Sign in with a hospital or pharmacy account to manage listings, enquiries and appointments.' },
+      denied: { icon: ShieldX, title: 'Provider access required', copy: 'This account is signed in but is not linked to a hospital or pharmacy. Provider access is provisioned by the CareCheck team.' },
+      error: { icon: CircleAlert, title: 'Unable to verify provider access', copy: 'The provider service could not be reached. Try again in a moment.' },
+    }[access];
+    const Icon = gate.icon;
+    return (
+      <section className="provider-dashboard" aria-labelledby="provider-heading">
+        <div className="provider-access">
+          <span className={`provider-access-icon access-${access}`}>
+            <Icon aria-hidden="true" className={access === 'checking' ? 'is-spinning' : undefined} />
+          </span>
+          <span className="provider-eyebrow">Provider workspace</span>
+          <h2 id="provider-heading">{gate.title}</h2>
+          <p>{gate.copy}</p>
+          {session?.user?.email ? <p className="provider-access-user">Signed in as {session.user.email}</p> : null}
+          <div className="provider-access-actions">
+            {access === 'signed_out' ? (
+              <button type="button" className="provider-button-primary" onClick={() => window.dispatchEvent(new Event('carecheck:open-auth'))}>
+                <LogIn aria-hidden="true" /> Sign in with a provider account
+              </button>
+            ) : null}
+            {access === 'denied' ? (
+              <>
+                <button type="button" className="provider-button-secondary" onClick={() => window.dispatchEvent(new Event('carecheck:sign-out'))}>Sign out</button>
+                <a className="provider-button-primary" href="#/">Go to patient app</a>
+              </>
+            ) : null}
+            {access === 'error' ? (
+              <button type="button" className="provider-button-primary" onClick={() => setAccessAttempt((value) => value + 1)}>
+                <RefreshCw aria-hidden="true" /> Retry
+              </button>
+            ) : null}
+            {access === 'signed_out' || access === 'error' ? <a className="provider-button-secondary" href="#/">Back to patient app</a> : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="provider-dashboard" aria-labelledby="provider-heading">

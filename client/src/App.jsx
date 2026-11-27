@@ -23,6 +23,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const handler = () => {
+      auth?.auth.signOut().then(() => {
+        storeSession(null);
+        setAuthOpen(false);
+      });
+    };
+    window.addEventListener('carecheck:sign-out', handler);
+    return () => window.removeEventListener('carecheck:sign-out', handler);
+  }, []);
+
+  useEffect(() => {
     if (!auth) { setReady(true); return undefined; }
     let active = true;
     getSession().then((value) => {
@@ -83,7 +94,7 @@ export default function App() {
       {!ready ? (
         <main><p role="status">Starting CareCheck…</p></main>
       ) : route === '#/provider' ? (
-        <main className="provider-main"><ProviderDashboard key={session?.user?.id || 'anonymous'} /></main>
+        <main className="provider-main"><ProviderDashboard key={session?.user?.id || 'anonymous'} session={session} /></main>
       ) : (
         <PatientApp />
       )}
