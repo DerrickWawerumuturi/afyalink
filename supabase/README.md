@@ -143,6 +143,22 @@ npx supabase@3.4.0 db query --remote -f supabase/seed-demo-500.sql --yes
 
 Combined with the base seed this yields 54 providers, 25 catalog items and 508 listings.
 
+### Large bulk demo dataset
+
+For a higher-volume demo, `seed-bulk-5000-listings.sql` adds **300 providers**, **40 catalog items** and **4,500 listings** (idempotent, deterministic UUIDs). Apply it after the base seed:
+
+```bash
+npx supabase@3.4.0 db query --remote -f supabase/seed-bulk-5000-listings.sql --yes
+```
+
+`seed-bulk-activity.sql` adds **200 requests** and **150 appointments** for the demo patient. It resolves the patient by email, so create the Auth demo users first:
+
+```bash
+npx supabase@3.4.0 db query --remote -f supabase/seed-bulk-activity.sql --yes
+```
+
+Current hosted development totals: **354 providers, 65 catalog items, 5,008 listings, 203 requests, 150 appointments, 2 memberships**. The patient client bootstraps from `GET /api/directory` (catalog + providers only) and fetches provider listings on demand, so this volume stays fast.
+
 ## Verification
 
 ```sql
@@ -161,7 +177,7 @@ select * from public.listings l
 
 The last query must return zero rows.
 
-Observed after provisioning plus the optional bulk demo seed: 54 providers, 25 catalog items, 508 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The 31-check E2E suite passed against both local and hosted targets.
+Observed on the hosted development project with the bulk demo datasets: 354 providers, 65 catalog items, 5,008 listings, 203 requests, 150 appointments and 2 memberships. The 14-check UI flow and API E2E suite passed against the hosted target.
 
 ## Security notes
 
