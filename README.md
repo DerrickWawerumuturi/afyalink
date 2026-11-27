@@ -29,7 +29,7 @@ Stretch: compare a whole synthetic prescription and add service + medication + m
 - Supabase-hosted PostgreSQL: one shared schema and synthetic seed dataset.
 - Supabase Auth is the planned identity provider for patient and provider demo accounts. Add its SDK only when implementing auth.
 
-Flow: React → Express `/api` → PostgreSQL. The browser never receives database credentials or privileged Supabase keys. Express owns business rules and checks authenticated ownership on every private operation. Database access is not wired in this initial shell. `/api/health` reports process health only.
+Flow: React → Express `/api` → PostgreSQL. The browser never receives database credentials or privileged Supabase keys. Express owns business rules and checks authenticated ownership on every private operation. Database access is wired through the `pg` pool; `/api/health` reports process health only.
 
 ## Team ownership and branches
 
@@ -76,7 +76,7 @@ afyalink/
 
 ## Database design (implementation contract)
 
-Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `numeric(12,2)`, and foreign keys. API prices are JSON numbers in KES; perform totals in integer minor units internally to avoid floating-point errors. Format display as KSh. This is a proposed schema, not an applied migration.
+Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `numeric(12,2)`, and foreign keys. API prices are JSON numbers in KES; perform totals in integer minor units internally to avoid floating-point errors. Format display as KSh. The migration is in `supabase/migrations/` and has been applied to local and hosted development projects.
 
 | Table | Key fields and constraints |
 | --- | --- |
@@ -94,7 +94,7 @@ Transitions: pending → confirmed or declined; pending and confirmed become eff
 
 ## API contracts
 
-The initial server implements only `GET /api/health`. The following routes are the agreed work contract; details, examples, errors and authorization are in [docs/API.md](docs/API.md).
+The server implements the routes below; details, examples, errors and authorization are in [docs/API.md](docs/API.md).
 
 | Method | Route | Purpose |
 | --- | --- | --- |
@@ -104,6 +104,7 @@ The initial server implements only `GET /api/health`. The following routes are t
 | GET | `/api/requests/:id` | Patient reads their own enquiry |
 | GET / POST | `/api/provider/listings` | Provider lists/creates its own offerings |
 | PATCH | `/api/provider/listings/:id` | Provider updates its own offering |
+| DELETE | `/api/provider/listings/:id` | Provider removes its own offering |
 | GET | `/api/provider/requests` | Provider reads incoming enquiries |
 | PATCH | `/api/provider/requests/:id` | Provider confirms or declines an enquiry |
 
@@ -127,7 +128,7 @@ Open `http://localhost:5173`; provider shell is `/#/provider`. Check `http://loc
 
 Client environment: `VITE_API_URL=http://localhost:5000/api`. Every `VITE_` value is public. Server environment: `PORT=5000`, `CLIENT_URL=http://localhost:5173`, `DATABASE_URL=`. Leave the database URL empty for shell development; Dev 2 obtains the connection string privately from the Supabase dashboard and configures TLS with certificate verification. No privileged Supabase key is needed by the initial `pg` architecture. Authentication configuration will be added with its implementation.
 
-Database setup is intentionally pending: Dev 2 creates and reviews the schema migration, least-privilege database role, RLS policies and synthetic seed, then documents exact local/hosted commands in `supabase/README.md`. Do not run placeholder `seed.sql` expecting populated data. Keep Supabase CLI version and target environment explicit before applying migrations.
+Database setup is implemented: the migration, least-privilege database role, RLS policies and synthetic seed are in `supabase/`, with exact local/hosted commands in `supabase/README.md`. A local stack and a hosted development project are provisioned; no production resources exist. Keep the Supabase CLI version and target environment explicit before applying migrations.
 
 ## Remaining two-hour sprint
 

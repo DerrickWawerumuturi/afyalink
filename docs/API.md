@@ -57,7 +57,9 @@ Insufficient stock or unavailable items are missing. For partial options, `compl
 
 `POST /provider/listings`: `{"item_id":"...UUID...","price":1200,"pricing_unit":"scan","available":true,"stock_quantity":null}`. Provider is derived from trusted membership; for multiple memberships require an authorized selected provider. Return 201 with listing. Existing provider/item/unit returns 409. Validate provider/item type compatibility.
 
-`PATCH /provider/listings/:id`: allow only price, availability and stock quantity. Same validations as creation; server sets updated_at. Never permit changing owner. Return updated listing. Monetary values non-negative, at most two decimal places; stock null or non-negative integer. Medication unit must match catalog unit.
+`PATCH /provider/listings/:id`: allow only price, availability and stock quantity. The client may echo `item_id` and `pricing_unit` from the edit form, but they must equal the current values; any change is rejected with 400. Same validations as creation; server sets updated_at. Never permit changing owner. Return updated listing. Monetary values non-negative, at most two decimal places; stock null or non-negative integer. Medication unit must match catalog unit.
+
+`DELETE /provider/listings/:id`: provider-scoped. Return `{"data":{"id":"..."}}`; 404 for another owner's listing; 409 `LISTING_HAS_REQUESTS` when a request references the listing, preserving enquiry history.
 
 ## Provider requests
 
