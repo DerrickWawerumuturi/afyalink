@@ -6,6 +6,11 @@ import { LISTING_COLUMNS, toListing } from '../serializers.js';
 
 const router = Router();
 
+const optionalMoney = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.coerce.number().nonnegative().optional(),
+);
+
 const searchSchema = z.object({
   type: z.enum(['service', 'medication']),
   q: z.string().trim().min(1).max(100).optional(),
@@ -14,7 +19,7 @@ const searchSchema = z.object({
     .enum(['true', 'false'])
     .transform((value) => value === 'true')
     .optional(),
-  max_price: z.coerce.number().nonnegative().optional(),
+  max_price: optionalMoney,
   sort: z.enum(['price_asc', 'price_desc', 'updated_desc']).default('price_asc'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -50,23 +55,23 @@ router.get(
       conditions.push(`l.price <= $${values.length}`);
     }
 
-    values.push(filters.limit, (filters.page - 1) * filters.limit);
-
-    const result = await query(
-      `SELECT ${LISTING_COLUMNS}, COUNT(*) OVER() AS total
-         FROM listings l
+    const from = `FROM listings l
          JOIN providers p ON p.id = l.provider_id
          JOIN catalog_items i ON i.id = l.item_id
-        WHERE ${conditions.join(' AND ')}
+        WHERE ${conditions.join(' AND ')}`;
+
+    const countResult = await query(`SELECT COUNT(*)::int AS total ${from}`, values);
+    const result = await query(
+      `SELECT ${LISTING_COLUMNS}
+         ${from}
         ORDER BY ${ORDER_BY[filters.sort]}
-        LIMIT $${values.length - 1} OFFSET $${values.length}`,
-      values,
+        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      [...values, filters.limit, (filters.page - 1) * filters.limit],
     );
 
-    const total = result.rows.length ? Number(result.rows[0].total) : 0;
     response.json({
       data: result.rows.map(toListing),
-      meta: { page: filters.page, limit: filters.limit, total },
+      meta: { page: filters.page, limit: filters.limit, total: countResult.rows[0].total },
     });
   }),
 );

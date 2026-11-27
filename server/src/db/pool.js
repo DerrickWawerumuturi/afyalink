@@ -37,7 +37,9 @@ export function getPool() {
       ssl: sslConfig(),
       max: Number(process.env.DATABASE_POOL_MAX || 10),
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
+      connectionTimeoutMillis: 10_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
     });
     pool.on('error', (error) => {
       console.error('Unexpected database pool error:', error.message);

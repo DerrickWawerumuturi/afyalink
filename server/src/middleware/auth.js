@@ -38,26 +38,45 @@ function verifyHs256(token, secret) {
   return parsed.payload;
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function verifyWithSupabase(token, url, anonKey) {
-  let response;
-  try {
-    response = await fetch(`${url.replace(/\/+$/, '')}/auth/v1/user`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(5000),
-    });
-  } catch {
-    throw new ApiError(503, 'AUTH_UNAVAILABLE', 'Authentication service is unavailable');
+  const endpoint = `${url.replace(/\/+$/, '')}/auth/v1/user`;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch {
+      if (attempt === 0) {
+        await sleep(200);
+        continue;
+      }
+      throw new ApiError(503, 'AUTH_UNAVAILABLE', 'Authentication service is unavailable');
+    }
+
+    if (response.status >= 500) {
+      if (attempt === 0) {
+        await sleep(200);
+        continue;
+      }
+      throw new ApiError(503, 'AUTH_UNAVAILABLE', 'Authentication service is unavailable');
+    }
+    if (!response.ok) return null;
+
+    let user;
+    try {
+      user = await response.json();
+    } catch {
+      return null;
+    }
+    if (!user || !user.id) return null;
+    if (user.role === 'anon' || user.role === 'service_role') return null;
+    return { sub: user.id, email: user.email, role: user.role };
   }
-  if (!response.ok) return null;
-  let user;
-  try {
-    user = await response.json();
-  } catch {
-    return null;
-  }
-  if (!user || !user.id) return null;
-  if (user.role === 'anon' || user.role === 'service_role') return null;
-  return { sub: user.id, email: user.email, role: user.role };
+  return null;
 }
 
 export async function verifyToken(token) {

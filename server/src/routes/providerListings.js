@@ -53,8 +53,12 @@ router.get(
   '/listings',
   asyncHandler(async (request, response) => {
     const { page, limit } = parse(paginationSchema, request.query);
+    const countResult = await query(
+      'SELECT COUNT(*)::int AS total FROM listings WHERE provider_id = $1',
+      [request.provider.id],
+    );
     const result = await query(
-      `SELECT ${LISTING_COLUMNS}, COUNT(*) OVER() AS total
+      `SELECT ${LISTING_COLUMNS}
          FROM listings l
          JOIN providers p ON p.id = l.provider_id
          JOIN catalog_items i ON i.id = l.item_id
@@ -64,10 +68,9 @@ router.get(
       [request.provider.id, limit, (page - 1) * limit],
     );
 
-    const total = result.rows.length ? Number(result.rows[0].total) : 0;
     response.json({
       data: result.rows.map(toListing),
-      meta: { page, limit, total },
+      meta: { page, limit, total: countResult.rows[0].total },
     });
   }),
 );

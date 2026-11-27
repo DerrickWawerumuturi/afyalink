@@ -47,26 +47,33 @@ router.get(
   '/requests',
   asyncHandler(async (request, response) => {
     const filters = parse(listSchema, request.query);
-    const result = await query(
-      `WITH scoped AS (
+    const scoped = `WITH scoped AS (
          SELECT ${PROVIDER_REQUEST_COLUMNS}
          ${PROVIDER_REQUEST_FROM}
          WHERE l.provider_id = $1
-       ),
+       )`;
+    const countResult = await query(
+      `${scoped}
+       SELECT COUNT(*)::int AS total
+         FROM scoped
+        WHERE ($2::text IS NULL OR effective_status = $2)`,
+      [request.provider.id, filters.status ?? null],
+    );
+    const result = await query(
+      `${scoped},
        filtered AS (
          SELECT * FROM scoped WHERE ($2::text IS NULL OR effective_status = $2)
        )
-       SELECT *, COUNT(*) OVER() AS total
+       SELECT *
          FROM filtered
         ORDER BY created_at DESC, id ASC
         LIMIT $3 OFFSET $4`,
       [request.provider.id, filters.status ?? null, filters.limit, (filters.page - 1) * filters.limit],
     );
 
-    const total = result.rows.length ? Number(result.rows[0].total) : 0;
     response.json({
       data: result.rows.map(toProviderRequest),
-      meta: { page: filters.page, limit: filters.limit, total },
+      meta: { page: filters.page, limit: filters.limit, total: countResult.rows[0].total },
     });
   }),
 );

@@ -9,7 +9,11 @@ import requestsRouter from './routes/requests.js';
 import providerRouter from './routes/provider.js';
 
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://127.0.0.1:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '32kb' }));
 
 app.get('/api/health', (_request, response) =>
@@ -61,6 +65,8 @@ async function shutdown(signal) {
     await closePool();
     process.exit(0);
   });
+  server.closeAllConnections?.();
+  setTimeout(() => process.exit(1), 5000).unref();
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
