@@ -207,6 +207,30 @@ export async function respondToRequest(id, value) {
   return { data: demoRespondToRequest(id, value), notice: '' };
 }
 
+export async function loadAppointments({ page = 1, limit = 20 } = {}) {
+  if (demoMode) return { data: [], meta: pageMeta(page, limit), source: 'demo', notice: 'Synthetic demo: no appointments loaded.' };
+  try {
+    const payload = await api(`/provider/appointments?page=${page}&limit=${limit}`);
+    demoMode = false;
+    return {
+      data: Array.isArray(payload.data) ? payload.data : [],
+      meta: payload.meta || pageMeta(page, limit),
+      source: 'api',
+      notice: ''
+    };
+  } catch (error) {
+    if (!canUseDemo(error)) throw error;
+    demoMode = true;
+    return { data: [], meta: pageMeta(page, limit), source: 'demo', notice: demoNotice(error) };
+  }
+}
+
+export async function respondToAppointment(id, value) {
+  if (demoMode) throw new Error('Appointments require the live provider API.');
+  const payload = await api(`/provider/appointments/${encodeURIComponent(id)}`, { method: 'PATCH', body: value });
+  return { data: payload.data, notice: '' };
+}
+
 export function resetDemoData() {
   demoReset();
   return { notice: 'Synthetic demo data reset.' };

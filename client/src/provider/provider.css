@@ -1648,3 +1648,11 @@
     min-width: 36rem;
   }
 }
+
+/* Appointment statuses and notes */
+.provider-request-requested { border-left-color: #f59e0b; }
+.provider-request-cancelled { border-left-color: #98a2b3; }
+.provider-badge-requested { background: var(--amber-soft); color: var(--amber); }
+.provider-badge-cancelled { background: #f1f5f3; color: #6b807c; }
+.appointment-provider-actions { margin-top: 0.9rem; }
+.appointment-card-notes { margin: 12px 0 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); font-size: 0.83rem; font-style: italic; }

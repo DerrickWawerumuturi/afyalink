@@ -3,6 +3,7 @@ import {
   Activity,
   BadgeCheck,
   Building2,
+  CalendarDays,
   Inbox,
   LayoutDashboard,
   MapPin,
@@ -15,16 +16,19 @@ import ListingManager from './ListingManager.jsx';
 import Overview from './Overview.jsx';
 import ProfilePanel from './ProfilePanel.jsx';
 import RequestInbox from './RequestInbox.jsx';
+import AppointmentInbox from './AppointmentInbox.jsx';
 import {
   createListing,
   deleteListing,
   isDemoMode,
   listDemoProviders,
+  loadAppointments,
   loadCatalog,
   loadListings,
   loadProfile,
   loadRequests,
   resetDemoData,
+  respondToAppointment,
   respondToRequest,
   setDemoProvider,
   updateListing,
@@ -38,6 +42,7 @@ const PAGE_SIZE = 20;
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'requests', label: 'Requests', icon: Inbox, count: 'requests' },
+  { id: 'appointments', label: 'Appointments', icon: CalendarDays, count: 'appointments' },
   { id: 'listings', label: 'Listings', icon: Tags, count: 'listings' },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ];
@@ -52,6 +57,7 @@ export default function ProviderDashboard() {
   const [tab, setTab] = useState('overview');
   const [listings, setListings] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [profile, setProfile] = useState(null);
   const [providers, setProviders] = useState([]);
@@ -60,27 +66,30 @@ export default function ProviderDashboard() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [refreshedAt, setRefreshedAt] = useState(null);
-  const [pages, setPages] = useState({ listings: 1, requests: 1 });
+  const [pages, setPages] = useState({ listings: 1, requests: 1, appointments: 1 });
   const [meta, setMeta] = useState({
     listings: { page: 1, limit: PAGE_SIZE, total: 0 },
     requests: { page: 1, limit: PAGE_SIZE, total: 0 },
+    appointments: { page: 1, limit: PAGE_SIZE, total: 0 },
   });
 
   const load = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) setLoading(true);
     setError('');
     try {
-      const [listingResult, requestResult] = await Promise.all([
+      const [listingResult, requestResult, appointmentResult] = await Promise.all([
         loadListings({ page: pages.listings, limit: PAGE_SIZE }),
         loadRequests({ page: pages.requests, limit: PAGE_SIZE }),
+        loadAppointments({ page: pages.appointments, limit: PAGE_SIZE }),
       ]);
       const profileResult = await loadProfile();
       setListings(listingResult.data);
       setRequests(requestResult.data);
-      setMeta({ listings: listingResult.meta, requests: requestResult.meta });
+      setAppointments(appointmentResult.data);
+      setMeta({ listings: listingResult.meta, requests: requestResult.meta, appointments: appointmentResult.meta });
       setProfile(profileResult.data || listingResult.data[0]?.provider || null);
       setProviders(isDemoMode() ? listDemoProviders() : []);
-      setNotice([...new Set([listingResult.notice, requestResult.notice, profileResult.notice].filter(Boolean))].join(' '));
+      setNotice([...new Set([listingResult.notice, requestResult.notice, appointmentResult.notice, profileResult.notice].filter(Boolean))].join(' '));
       setRefreshedAt(new Date());
     } catch (failure) {
       setError(describeError(failure));
@@ -173,6 +182,22 @@ export default function ProviderDashboard() {
     }
   }
 
+  async function respondAppointment(id, value) {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await respondToAppointment(id, value);
+      if (result.notice) setNotice(result.notice);
+      await load({ showLoading: false });
+      return true;
+    } catch (failure) {
+      setError(describeError(failure));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function switchProvider(event) {
     setBusy(true);
     setError('');
@@ -197,7 +222,7 @@ export default function ProviderDashboard() {
   const ProviderIcon = isPharmacy ? Pill : Building2;
   const pendingCount = requests.filter((request) => effectiveStatus(request) === 'pending').length;
   const demo = isDemoMode();
-  const tabCounts = { requests: meta.requests.total, listings: meta.listings.total };
+  const tabCounts = { requests: meta.requests.total, appointments: meta.appointments.total, listings: meta.listings.total };
 
   return (
     <section className="provider-dashboard" aria-labelledby="provider-heading">
@@ -298,6 +323,17 @@ export default function ProviderDashboard() {
             meta={meta.requests}
             onPageChange={(page) => changePage('requests', page)}
             onRespond={respond}
+          />
+        </div>
+      ) : null}
+      {!loading && tab === 'appointments' ? (
+        <div role="tabpanel" id="provider-panel-appointments" aria-labelledby="provider-tab-appointments">
+          <AppointmentInbox
+            appointments={appointments}
+            busy={busy}
+            meta={meta.appointments}
+            onPageChange={(page) => changePage('appointments', page)}
+            onRespond={respondAppointment}
           />
         </div>
       ) : null}
