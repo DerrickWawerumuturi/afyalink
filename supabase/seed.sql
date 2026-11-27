@@ -15,7 +15,8 @@ values
   ('20000000-0000-4000-8000-000000000001', 'Ultrasound', 'service', null, null, 'scan'),
   ('20000000-0000-4000-8000-000000000002', 'Paracetamol', 'medication', '500 mg', 'tablet', 'tablet'),
   ('20000000-0000-4000-8000-000000000003', 'Complete blood count', 'service', null, null, 'test'),
-  ('20000000-0000-4000-8000-000000000004', 'Amoxicillin', 'medication', '500 mg', 'capsule', 'capsule')
+  ('20000000-0000-4000-8000-000000000004', 'Amoxicillin', 'medication', '500 mg', 'capsule', 'capsule'),
+  ('20000000-0000-4000-8000-000000000005', 'Ibuprofen', 'medication', '200 mg', 'tablet', 'tablet')
 on conflict do nothing;
 
 insert into public.listings (id, provider_id, item_id, price, pricing_unit, available, stock_quantity)
