@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ConfirmationDialog from './ConfirmationDialog.jsx';
+import Pager from './Pager.jsx';
 import { effectiveStatus, formatKes, formatTimestamp, isStale, toDateTimeLocal, validateResponseInput } from './validation.js';
 
 const FILTERS = ['all', 'pending', 'confirmed', 'declined', 'expired'];
@@ -22,7 +23,7 @@ function itemDetail(request) {
   return [item.strength, item.dosage_form, item.unit].filter(Boolean).join(' · ');
 }
 
-export default function RequestInbox({ requests, busy, onRespond }) {
+export default function RequestInbox({ requests, busy, meta, onPageChange, onRespond }) {
   const [filter, setFilter] = useState('all');
   const [drafts, setDrafts] = useState({});
   const [errors, setErrors] = useState({});
@@ -159,6 +160,8 @@ export default function RequestInbox({ requests, busy, onRespond }) {
           })}
         </ul>
       )}
+
+      <Pager meta={meta} disabled={busy} label="Enquiry" onChange={onPageChange} />
 
       <ConfirmationDialog
         open={Boolean(declineTarget)}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import ConfirmationDialog from './ConfirmationDialog.jsx';
+import Pager from './Pager.jsx';
 import { formatKes, formatTimestamp, isStale } from './validation.js';
 
 const EMPTY_FORM = { item_id: '', price: '', pricing_unit: '', available: 'true', stock_quantity: '' };
@@ -13,7 +14,7 @@ function listingName(listing) {
   return listing.item?.name || 'Unknown item';
 }
 
-export default function ListingManager({ listings, catalog, providerType, busy, canRemove, onSave, onRemove }) {
+export default function ListingManager({ listings, catalog, providerType, busy, canRemove, meta, onPageChange, onSave, onRemove }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
@@ -195,6 +196,8 @@ export default function ListingManager({ listings, catalog, providerType, busy, 
           {renderTable(filtered.filter((listing) => listing.item?.type === 'medication'), 'Medications')}
         </>
       )}
+
+      <Pager meta={meta} disabled={busy} label="Listing" onChange={onPageChange} />
 
       <ConfirmationDialog
         open={Boolean(pendingRemove)}

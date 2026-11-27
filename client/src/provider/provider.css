@@ -450,6 +450,16 @@
   margin-top: 1.25rem;
 }
 
+.provider-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: .25rem;
+  color: #52706b;
+  font-size: .875rem;
+}
+
 @media (max-width: 40rem) {
   .provider-header,
   .provider-header-actions,
