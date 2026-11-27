@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query } from '../db/pool.js';
 import { conflict, notFound } from '../errors.js';
 import { asyncHandler, parse } from '../http.js';
+import { requireAuth } from '../middleware/auth.js';
 import { toRequest } from '../serializers.js';
 
 const router = Router();
@@ -29,6 +30,7 @@ const REQUEST_COLUMNS = `
 
 router.post(
   '/requests',
+  requireAuth,
   asyncHandler(async (request, response) => {
     const body = parse(createSchema, request.body);
     const listing = await query('SELECT id, available, currency FROM listings WHERE id = $1', [
@@ -54,6 +56,7 @@ router.post(
 
 router.get(
   '/requests/:id',
+  requireAuth,
   asyncHandler(async (request, response) => {
     const { id } = parse(idSchema, request.params);
     const result = await query(
