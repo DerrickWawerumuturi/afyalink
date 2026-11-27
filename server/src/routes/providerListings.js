@@ -22,13 +22,15 @@ const createSchema = z
 
 const updateSchema = z
   .object({
+    item_id: z.string().uuid().optional(),
+    pricing_unit: z.string().trim().min(1).max(40).optional(),
     price: moneySchema.optional(),
     available: z.boolean().optional(),
     stock_quantity: z.number().int().nonnegative().nullable().optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, {
-    message: 'At least one of price, available or stock_quantity is required',
+    message: 'At least one field is required',
   });
 
 const LISTING_QUERY = `SELECT ${LISTING_COLUMNS}
@@ -128,22 +130,38 @@ router.patch(
     const { id } = parse(idSchema, request.params);
     const body = parse(updateSchema, request.body);
 
+    const current = await query(
+      'SELECT item_id, pricing_unit FROM listings WHERE id = $1 AND provider_id = $2',
+      [id, request.provider.id],
+    );
+    if (current.rowCount === 0) throw notFound('Listing not found');
+
+    if (body.item_id !== undefined && body.item_id !== current.rows[0].item_id) {
+      throw badRequest('Listing item cannot be changed', { item_id: 'Item is immutable' });
+    }
+    if (body.pricing_unit !== undefined && body.pricing_unit !== current.rows[0].pricing_unit) {
+      throw badRequest('Pricing unit cannot be changed', {
+        pricing_unit: 'Pricing unit is immutable',
+      });
+    }
+
     const assignments = [];
     const values = [];
-    for (const [field, value] of Object.entries(body)) {
-      values.push(value);
+    for (const field of ['price', 'available', 'stock_quantity']) {
+      if (body[field] === undefined) continue;
+      values.push(body[field]);
       assignments.push(`${field} = $${values.length}`);
     }
-    values.push(id, request.provider.id);
 
-    const result = await query(
-      `UPDATE listings
-          SET ${assignments.join(', ')}, updated_at = now()
-        WHERE id = $${values.length - 1} AND provider_id = $${values.length}
-        RETURNING id`,
-      values,
-    );
-    if (result.rowCount === 0) throw notFound('Listing not found');
+    if (assignments.length > 0) {
+      values.push(id, request.provider.id);
+      await query(
+        `UPDATE listings
+            SET ${assignments.join(', ')}, updated_at = now()
+          WHERE id = $${values.length - 1} AND provider_id = $${values.length}`,
+        values,
+      );
+    }
 
     response.json({ data: await loadListing(id, request.provider.id) });
   }),
