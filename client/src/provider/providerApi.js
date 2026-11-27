@@ -12,26 +12,44 @@ import {
   demoUpdateListing,
   demoUpdateProfile
 } from './fixtures.js';
+import { getAccessToken, getSession } from '../patient/auth.js';
 
 const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:5000/api');
 let demoMode = false;
 
-function authHeaders() {
-  let token = '';
+if (typeof window !== 'undefined') {
+  window.addEventListener('carecheck-auth', async () => {
+    demoMode = !(await sessionAvailable());
+  });
+}
+
+async function authHeaders() {
+  const token = getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
   try {
-    token = localStorage.getItem('carecheck_access_token') || '';
+    const session = await getSession();
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
   } catch {
-    token = '';
+    return {};
   }
-  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function sessionAvailable() {
+  if (getAccessToken()) return true;
+  try {
+    return Boolean((await getSession())?.access_token);
+  } catch {
+    return false;
+  }
 }
 
 async function api(path, options = {}) {
   let response;
+  const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) };
   try {
     response = await fetch(`${baseUrl}${path}`, {
       method: options.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
     });
   } catch {
@@ -89,6 +107,7 @@ export function loadCatalog() {
 }
 
 export async function loadProfile() {
+  demoMode = !(await sessionAvailable());
   if (demoMode) return { data: demoGetProfile(), source: 'demo' };
   try {
     const payload = await api('/provider/profile');
@@ -110,6 +129,7 @@ export async function setDemoProvider(id) {
 }
 
 export async function loadListings({ page = 1, limit = 20 } = {}) {
+  demoMode = !(await sessionAvailable());
   if (demoMode) return { ...demoListings({ page, limit }), source: 'demo', notice: 'Synthetic demo data in use.' };
   try {
     const payload = await api(`/provider/listings?page=${page}&limit=${limit}`);
@@ -128,6 +148,7 @@ export async function loadListings({ page = 1, limit = 20 } = {}) {
 }
 
 export async function loadRequests({ status = 'all', page = 1, limit = 20 } = {}) {
+  demoMode = !(await sessionAvailable());
   if (demoMode) return { ...demoRequests({ status, page, limit }), source: 'demo', notice: 'Synthetic demo data in use.' };
   const query = status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '';
   try {
@@ -147,6 +168,7 @@ export async function loadRequests({ status = 'all', page = 1, limit = 20 } = {}
 }
 
 export async function createListing(value) {
+  demoMode = !(await sessionAvailable());
   if (!demoMode) {
     try {
       const payload = await api('/provider/listings', { method: 'POST', body: value });
@@ -161,6 +183,7 @@ export async function createListing(value) {
 }
 
 export async function updateListing(id, value) {
+  demoMode = !(await sessionAvailable());
   if (!demoMode) {
     try {
       const payload = await api(`/provider/listings/${encodeURIComponent(id)}`, { method: 'PATCH', body: value });
@@ -175,6 +198,7 @@ export async function updateListing(id, value) {
 }
 
 export async function deleteListing(id) {
+  demoMode = !(await sessionAvailable());
   if (!demoMode) {
     try {
       const payload = await api(`/provider/listings/${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -194,6 +218,7 @@ export async function updateProfile(value) {
 }
 
 export async function respondToRequest(id, value) {
+  demoMode = !(await sessionAvailable());
   if (!demoMode) {
     try {
       const payload = await api(`/provider/requests/${encodeURIComponent(id)}`, { method: 'PATCH', body: value });
@@ -208,6 +233,7 @@ export async function respondToRequest(id, value) {
 }
 
 export async function loadAppointments({ page = 1, limit = 20 } = {}) {
+  demoMode = !(await sessionAvailable());
   if (demoMode) return { data: [], meta: pageMeta(page, limit), source: 'demo', notice: 'Synthetic demo: no appointments loaded.' };
   try {
     const payload = await api(`/provider/appointments?page=${page}&limit=${limit}`);
@@ -226,6 +252,7 @@ export async function loadAppointments({ page = 1, limit = 20 } = {}) {
 }
 
 export async function respondToAppointment(id, value) {
+  demoMode = !(await sessionAvailable());
   if (demoMode) throw new Error('Appointments require the live provider API.');
   const payload = await api(`/provider/appointments/${encodeURIComponent(id)}`, { method: 'PATCH', body: value });
   return { data: payload.data, notice: '' };

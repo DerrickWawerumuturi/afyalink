@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CircleAlert, LogIn, ShieldCheck, UserPlus, X } from 'lucide-react';
-import { auth } from '../patient/auth.js';
+import { auth, storeSession } from '../patient/auth.js';
 import './auth.css';
 
 const DEMO_ACCOUNTS = [
@@ -88,11 +88,12 @@ export default function AuthDialog({ open, onClose, initialMode = 'signin' }) {
     setBusy(true);
     try {
       if (mode === 'signin') {
-        const { error: failure } = await auth.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error: failure } = await auth.auth.signInWithPassword({ email: email.trim(), password });
         if (failure) {
           setError(friendlyError(failure.message));
           return;
         }
+        storeSession(data.session);
         setPassword('');
         onClose();
         return;
@@ -108,6 +109,7 @@ export default function AuthDialog({ open, onClose, initialMode = 'signin' }) {
         return;
       }
       if (data.session) {
+        storeSession(data.session);
         setPassword('');
         setConfirmPassword('');
         onClose();

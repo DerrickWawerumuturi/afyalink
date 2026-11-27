@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import PatientApp from './patient/PatientApp.jsx';
 import ProviderDashboard from './provider/ProviderDashboard.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
-import { auth } from './patient/auth.js';
+import { auth, getSession, storeSession } from './patient/auth.js';
 
 export default function App() {
   const [route, setRoute] = useState(window.location.hash);
@@ -25,11 +25,10 @@ export default function App() {
   useEffect(() => {
     if (!auth) { setReady(true); return undefined; }
     let active = true;
-    auth.auth.getSession().then(({ data }) => {
+    getSession().then((value) => {
       if (!active) return;
-      if (data.session?.access_token) localStorage.setItem('carecheck_access_token', data.session.access_token);
-      else localStorage.removeItem('carecheck_access_token');
-      setSession(data.session);
+      storeSession(value);
+      setSession(value);
       setReady(true);
     }).catch(() => { if (active) setReady(true); });
     const { data } = auth.auth.onAuthStateChange((_event, value) => {
@@ -43,6 +42,7 @@ export default function App() {
   async function signOut() {
     if (!auth) return;
     await auth.auth.signOut();
+    storeSession(null);
     setAuthOpen(false);
   }
 

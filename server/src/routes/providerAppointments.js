@@ -36,7 +36,7 @@ router.get(
       `SELECT ${APPOINTMENT_COLUMNS}
          ${APPOINTMENT_FROM}
         WHERE l.provider_id = $1 AND ($2::text IS NULL OR a.status = $2)
-        ORDER BY a.requested_for ASC, a.created_at ASC
+        ORDER BY (a.requested_for < now()) ASC, a.requested_for ASC, a.created_at ASC
         LIMIT $3 OFFSET $4`,
       [request.provider.id, status, filters.limit, (filters.page - 1) * filters.limit],
     );

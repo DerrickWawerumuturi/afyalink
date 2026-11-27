@@ -79,7 +79,7 @@ router.get(
       `SELECT ${APPOINTMENT_COLUMNS}
          ${APPOINTMENT_FROM}
         WHERE a.patient_user_id = $1
-        ORDER BY a.requested_for ASC, a.created_at DESC
+        ORDER BY (a.requested_for < now()) ASC, a.requested_for ASC, a.created_at DESC
         LIMIT 100`,
       [request.user.id],
     );
