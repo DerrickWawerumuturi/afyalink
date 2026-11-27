@@ -1,6 +1,6 @@
 # Database setup — Dev 2
 
-Status: **verified on the local Supabase stack; not yet applied to a hosted project.** The schema, seed and API role are committed and were exercised end to end locally with CLI 3.4.0. Provision a hosted Supabase development project when the team is ready. All rows are synthetic.
+Status: **provisioned and verified on hosted Supabase and locally.** Hosted project: `afyalink-dev` (`iwqqhwgisvzeiyoricpt`, `eu-central-1`). Migration, seed, least-privilege API role and demo memberships are applied, and the backend passed the full E2E suite against both targets. All rows are synthetic.
 
 ## Contract
 
@@ -8,7 +8,8 @@ The schema contract is in the root `README.md`; the HTTP contract is in `docs/AP
 
 - `migrations/20261127120000_initial_schema.sql` — tables, constraints, triggers, indexes and RLS.
 - `seed.sql` — fictional providers, catalog items and listings (idempotent).
-- `api-role.sql` — least-privilege role used by Express over direct `pg`.
+- `api-role.sql` — least-privilege role for local `psql` (uses psql variables).
+- `api-role-hosted.sql` — same role/policies as plain SQL for `supabase db query`.
 
 ## Pinned tooling
 
@@ -72,33 +73,41 @@ Point `server/.env` at the local credentials (`DATABASE_SSL=false`) and run `npm
 
 ## Hosted development workflow
 
+Hosted project used for the sprint: **`afyalink-dev`** (`iwqqhwgisvzeiyoricpt`, org `myusercloud`, `eu-central-1`). It is a dedicated development project; never point these commands at production.
+
 ```bash
 npx supabase@3.4.0 login
-npx supabase@3.4.0 link --project-ref <project-ref>
+npx supabase@3.4.0 link --project-ref iwqqhwgisvzeiyoricpt
 
-# Apply the committed migration
-npx supabase@3.4.0 db push
+# Apply migrations and seed in one step
+npx supabase@3.4.0 db push --remote --include-seed --yes
 
-# Seed fictional data (repeatable)
-psql "$SUPABASE_ADMIN_CONNECTION_STRING" -f supabase/seed.sql
+# Create or refresh the least-privilege API role (plain SQL, no psql needed)
+API_PASSWORD='<PRIVATE_ALPHANUMERIC_PASSWORD>'
+sed "s/__API_PASSWORD__/$API_PASSWORD/g" supabase/api-role-hosted.sql > /tmp/api-role.sql
+npx supabase@3.4.0 db query --remote -f /tmp/api-role.sql --yes
 
-# Create the least-privilege API role (replace with a private password)
-psql "$SUPABASE_ADMIN_CONNECTION_STRING" \
-  -v api_password="'<CHANGE_ME_PRIVATE>'" -f supabase/api-role.sql
+# Verify
+npx supabase@3.4.0 db query --remote --read-only \
+  "select (select count(*) from providers) providers, (select count(*) from listings) listings;"
 ```
 
-Do not use `supabase db reset --linked` against a shared project: it wipes data. Prefer a dedicated development project and re-run `db push` + seed.
+Create the synthetic demo users with the project's secret key through the Auth admin API (`POST /auth/v1/admin/users` with `email_confirm: true`), then insert their memberships with `db query --remote`. Do not commit the password or secret key.
+
+Do not use `supabase db reset --linked` against a shared project: it wipes data. Prefer `db push` plus the idempotent seed.
 
 ## Express connection
 
-Add the private `pg` connection string for the `afyalink_api` role to `server/.env`:
+Add the private `pg` connection string for the `afyalink_api` role to `server/.env`. For hosted Supabase use the IPv4 pooler (session mode, port 5432):
 
 ```dotenv
-DATABASE_URL=postgresql://afyalink_api:<private-password>@<host>:5432/postgres
+DATABASE_URL=postgresql://afyalink_api.iwqqhwgisvzeiyoricpt:<private-password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
 DATABASE_SSL=true
+# Optional override; defaults to server/certs/supabase-pooler-ca.pem
+# DATABASE_SSL_CA=/absolute/path/to/ca.pem
 ```
 
-`DATABASE_SSL=true` enables TLS with certificate verification. Leave `DATABASE_URL` empty for shell-only work; private routes then return `503 DB_NOT_CONFIGURED` instead of leaking details. The browser never receives this value.
+`DATABASE_SSL=true` enables TLS with full certificate verification. Supabase's pooler presents a Supabase Root 2021 CA chain, so the public root certificate is pinned at `server/certs/supabase-pooler-ca.pem` (SHA-256 `80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA`). The direct `db.<ref>.supabase.co` host is IPv6-only on the free plan; the pooler is used for IPv4. Leave `DATABASE_URL` empty for shell-only work; private routes then return `503 DB_NOT_CONFIGURED` instead of leaking details. The browser never receives this value.
 
 ## Demo users and memberships
 
@@ -119,7 +128,7 @@ A provider user with more than one membership must send `x-provider-id` on provi
 | `providers` | 4 (2 hospitals, 2 pharmacies) |
 | `catalog_items` | 4 (2 services, 2 medications) |
 | `listings` | 8 |
-| `provider_memberships` | 0 (assigned after Auth demo users exist) |
+| `provider_memberships` | 0 in seed; 2 after demo setup (hospital + pharmacy) |
 
 ## Verification
 
@@ -138,6 +147,8 @@ select * from public.listings l
 ```
 
 The last query must return zero rows.
+
+Observed after provisioning: 4 providers, 4 catalog items, 8 listings, 2 memberships and 0 requests (test requests are cleaned after E2E). The full 23-check E2E passed against both local and hosted targets.
 
 ## Security notes
 
