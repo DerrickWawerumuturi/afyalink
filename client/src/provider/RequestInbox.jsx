@@ -1,15 +1,38 @@
 import { useState } from 'react';
+import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle2,
+  CircleSlash,
+  Inbox,
+  Search,
+  XCircle,
+} from 'lucide-react';
 import ConfirmationDialog from './ConfirmationDialog.jsx';
 import Pager from './Pager.jsx';
-import { effectiveStatus, formatKes, formatTimestamp, isStale, toDateTimeLocal, validateResponseInput } from './validation.js';
+import {
+  effectiveStatus,
+  expiresIn,
+  formatKes,
+  formatTimestamp,
+  isStale,
+  relativeTime,
+  toDateTimeLocal,
+  validateResponseInput,
+} from './validation.js';
 
-const FILTERS = ['all', 'pending', 'confirmed', 'declined', 'expired'];
+const FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'declined', label: 'Declined' },
+  { value: 'expired', label: 'Expired' },
+];
 
 function newDraft(request) {
   return {
-    status: 'confirmed',
     confirmed_price: request?.listing?.price === undefined ? '' : String(request.listing.price),
-    expires_at: toDateTimeLocal(new Date(Date.now() + 60 * 60000))
+    expires_at: toDateTimeLocal(new Date(Date.now() + 60 * 60000)),
   };
 }
 
@@ -25,11 +48,24 @@ function itemDetail(request) {
 
 export default function RequestInbox({ requests, busy, meta, onPageChange, onRespond }) {
   const [filter, setFilter] = useState('all');
+  const [query, setQuery] = useState('');
   const [drafts, setDrafts] = useState({});
   const [errors, setErrors] = useState({});
   const [pendingDecline, setPendingDecline] = useState(null);
 
-  const visible = filter === 'all' ? requests : requests.filter((request) => effectiveStatus(request) === filter);
+  const counts = requests.reduce((result, request) => {
+    const status = effectiveStatus(request);
+    result[status] = (result[status] || 0) + 1;
+    return result;
+  }, {});
+
+  const needle = query.trim().toLowerCase();
+  const visible = requests.filter((request) => {
+    if (filter !== 'all' && effectiveStatus(request) !== filter) return false;
+    if (!needle) return true;
+    return `${itemName(request)} ${itemDetail(request)}`.toLowerCase().includes(needle);
+  });
+
   const declineTarget = requests.find((request) => request.id === pendingDecline);
 
   function draftFor(request) {
@@ -54,13 +90,9 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
     });
   }
 
-  async function submit(request) {
+  async function confirm(request) {
     const draft = draftFor(request);
-    if (draft.status === 'declined') {
-      setPendingDecline(request.id);
-      return;
-    }
-    const { errors: nextErrors, value } = validateResponseInput(draft);
+    const { errors: nextErrors, value } = validateResponseInput({ ...draft, status: 'confirmed' });
     setErrors((current) => ({ ...current, [request.id]: nextErrors }));
     if (!value) return;
     const saved = await onRespond(request.id, value);
@@ -78,17 +110,51 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
   return (
     <div className="provider-stack">
       <div className="provider-toolbar">
-        <label className="provider-field provider-field-inline">
-          <span>Show</span>
-          <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-            {FILTERS.map((value) => <option key={value} value={value}>{value === 'all' ? `All (${requests.length})` : value.charAt(0).toUpperCase() + value.slice(1)}</option>)}
-          </select>
-        </label>
-        <p className="provider-hint">An enquiry is not a booking, payment or stock reservation. Confirmed prices snapshot the quote; expiry is calculated from stored UTC time.</p>
+        <div className="provider-filter-chips" role="group" aria-label="Filter enquiries by status">
+          {FILTERS.map((option) => {
+            const count = option.value === 'all' ? requests.length : counts[option.value] || 0;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={filter === option.value ? 'provider-chip-button is-active' : 'provider-chip-button'}
+                onClick={() => setFilter(option.value)}
+                aria-pressed={filter === option.value}
+              >
+                {option.label}
+                <span>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="provider-search provider-search-compact">
+          <Search aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search enquiries"
+            aria-label="Search enquiries"
+          />
+        </div>
       </div>
 
+      <p className="provider-hint">
+        Showing <strong>{visible.length}</strong> of {requests.length} enquiries on this page
+        {meta?.total ? ` · ${meta.total} total` : ''}. Confirmed prices snapshot the quote and expire automatically.
+      </p>
+
       {visible.length === 0 ? (
-        <p className="provider-empty">No {filter === 'all' ? '' : `${filter} `}enquiries to show.</p>
+        <div className="provider-empty provider-empty-card">
+          <Inbox aria-hidden="true" />
+          <strong>No enquiries to show</strong>
+          <p>{needle || filter !== 'all' ? 'Try a different search or status filter.' : 'New patient enquiries will appear here.'}</p>
+          {(needle || filter !== 'all') ? (
+            <button type="button" className="provider-button-secondary" onClick={() => { setQuery(''); setFilter('all'); }}>
+              Clear filters
+            </button>
+          ) : null}
+        </div>
       ) : (
         <ul className="provider-request-list">
           {visible.map((request) => {
@@ -97,61 +163,81 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
             const requestErrors = errors[request.id] || {};
             const detail = itemDetail(request);
             const stale = Boolean(request.listing?.updated_at) && isStale(request.listing.updated_at);
+            const unitPrice = Number(request.listing?.price) || 0;
+            const urgent = status === 'pending' && request.expires_at && new Date(request.expires_at).getTime() - Date.now() < 60 * 60 * 1000;
+            const StatusIcon = status === 'confirmed' ? CheckCircle2 : status === 'declined' ? XCircle : status === 'expired' ? CircleSlash : CalendarClock;
 
             return (
-              <li key={request.id} className="provider-request">
+              <li key={request.id} className={`provider-request provider-request-${status}`}>
                 <div className="provider-request-head">
-                  <div>
-                    <h3>{itemName(request)}{detail ? ` — ${detail}` : ''}</h3>
-                    <p className="provider-meta">
-                      {request.quantity} × {formatKes(request.listing?.price)} per {request.listing?.pricing_unit || 'unit'} · received {formatTimestamp(request.created_at)}
-                    </p>
+                  <div className="provider-request-title">
+                    <span className={`provider-item-icon ${request.item?.type === 'medication' ? 'is-medication' : 'is-service'}`}>
+                      <StatusIcon aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h3>{itemName(request)}</h3>
+                      <p className="provider-meta">
+                        {detail ? `${detail} · ` : ''}#{String(request.id).slice(0, 8).toUpperCase()} · received {relativeTime(request.created_at)}
+                      </p>
+                    </div>
                   </div>
                   <span className={`provider-badge provider-badge-${status}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
                 </div>
 
-                {request.expires_at ? <p className="provider-meta">Expires {formatTimestamp(request.expires_at)}</p> : null}
-                {request.request_group_id ? <p className="provider-meta">Linked enquiry group: {request.request_group_id}</p> : null}
-                {stale ? <p className="provider-meta">Listing data was last updated {formatTimestamp(request.listing?.updated_at)} and needs review.</p> : null}
+                <div className="provider-request-grid">
+                  <div><span>Quantity</span><strong>{request.quantity}</strong></div>
+                  <div><span>Unit price</span><strong>{formatKes(unitPrice)}</strong></div>
+                  <div><span>Estimate</span><strong>{formatKes(unitPrice * request.quantity)}</strong></div>
+                  <div>
+                    <span>Expires</span>
+                    <strong className={urgent ? 'provider-countdown is-urgent' : 'provider-countdown'} title={formatTimestamp(request.expires_at)}>
+                      {expiresIn(request.expires_at)}
+                    </strong>
+                  </div>
+                </div>
+
+                {stale ? (
+                  <p className="provider-inline-warning"><AlertCircle aria-hidden="true" /> The listing was last updated {relativeTime(request.listing?.updated_at)} and needs review.</p>
+                ) : null}
+                {request.request_group_id ? <p className="provider-meta">Grouped enquiry · {String(request.request_group_id).slice(0, 8).toUpperCase()}</p> : null}
 
                 {status === 'confirmed' ? (
-                  <p className="provider-outcome">Confirmed unit price {formatKes(request.confirmed_price)} · valid until {formatTimestamp(request.expires_at)}</p>
+                  <p className="provider-outcome provider-outcome-confirmed">
+                    <CheckCircle2 aria-hidden="true" /> Confirmed at {formatKes(request.confirmed_price)} per unit · valid until {formatTimestamp(request.expires_at)}
+                  </p>
                 ) : null}
-                {status === 'declined' ? <p className="provider-outcome">You declined this enquiry.</p> : null}
-                {status === 'expired' ? <p className="provider-outcome">This enquiry has expired and can no longer be answered.</p> : null}
+                {status === 'declined' ? (
+                  <p className="provider-outcome provider-outcome-declined"><XCircle aria-hidden="true" /> You declined this enquiry.</p>
+                ) : null}
+                {status === 'expired' ? (
+                  <p className="provider-outcome provider-outcome-expired"><CircleSlash aria-hidden="true" /> This enquiry expired and can no longer be answered.</p>
+                ) : null}
 
                 {status === 'pending' ? (
-                  <form className="provider-response-form" onSubmit={(event) => { event.preventDefault(); submit(request); }} noValidate>
+                  <form className="provider-response-form" onSubmit={(event) => { event.preventDefault(); confirm(request); }} noValidate>
                     <label className="provider-field">
-                      <span>Response</span>
-                      <select value={draft.status} onChange={(event) => updateDraft(request, 'status', event.target.value)}>
-                        <option value="confirmed">Confirm</option>
-                        <option value="declined">Decline</option>
-                      </select>
+                      <span>Confirmed unit price (KES)</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.confirmed_price}
+                        onChange={(event) => updateDraft(request, 'confirmed_price', event.target.value)}
+                        placeholder={request.listing?.price === undefined ? '0' : String(request.listing.price)}
+                      />
+                      {requestErrors.confirmed_price ? <em role="alert">{requestErrors.confirmed_price}</em> : null}
                     </label>
-                    {draft.status === 'confirmed' ? (
-                      <>
-                        <label className="provider-field">
-                          <span>Confirmed unit price (KES)</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={draft.confirmed_price}
-                            onChange={(event) => updateDraft(request, 'confirmed_price', event.target.value)}
-                            placeholder={request.listing?.price === undefined ? '0' : String(request.listing.price)}
-                          />
-                          {requestErrors.confirmed_price ? <em role="alert">{requestErrors.confirmed_price}</em> : null}
-                        </label>
-                        <label className="provider-field">
-                          <span>Quote expiry</span>
-                          <input type="datetime-local" value={draft.expires_at} onChange={(event) => updateDraft(request, 'expires_at', event.target.value)} />
-                          {requestErrors.expires_at ? <em role="alert">{requestErrors.expires_at}</em> : null}
-                        </label>
-                      </>
-                    ) : null}
-                    {requestErrors.status ? <p role="alert" className="provider-error-text">{requestErrors.status}</p> : null}
-                    <div className="provider-actions">
-                      <button type="submit" className="provider-button-primary" disabled={busy}>{busy ? 'Sending…' : 'Send response'}</button>
+                    <label className="provider-field">
+                      <span>Quote expiry</span>
+                      <input type="datetime-local" value={draft.expires_at} onChange={(event) => updateDraft(request, 'expires_at', event.target.value)} />
+                      {requestErrors.expires_at ? <em role="alert">{requestErrors.expires_at}</em> : null}
+                    </label>
+                    <div className="provider-response-actions">
+                      <button type="button" className="provider-button-secondary is-danger-text" onClick={() => setPendingDecline(request.id)} disabled={busy}>
+                        Decline
+                      </button>
+                      <button type="submit" className="provider-button-primary" disabled={busy}>
+                        {busy ? 'Sending…' : 'Confirm quote'}
+                      </button>
                     </div>
                   </form>
                 ) : null}
@@ -166,7 +252,7 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
       <ConfirmationDialog
         open={Boolean(declineTarget)}
         title="Decline enquiry"
-        description={declineTarget ? `Decline the ${itemName(declineTarget)} enquiry from ${formatTimestamp(declineTarget.created_at)}? The patient will see it as declined.` : ''}
+        description={declineTarget ? `Decline the ${itemName(declineTarget)} enquiry received ${formatTimestamp(declineTarget.created_at)}? The patient will see it as declined.` : ''}
         confirmLabel="Decline enquiry"
         onConfirm={confirmDecline}
         onCancel={() => setPendingDecline(null)}

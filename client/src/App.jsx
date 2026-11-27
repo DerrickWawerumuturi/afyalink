@@ -49,5 +49,5 @@ export default function App() {
       {auth ? session ? <button className="app-auth-button" onClick={async () => { await auth.auth.signOut(); window.location.reload(); }}>Sign out</button> : <button className="app-auth-button" onClick={() => setOpen(!open)} aria-expanded={open}>Sign in</button> : <span className="app-auth-unavailable">Sign-in unavailable</span>}
     </div>
     {open && auth && <form onSubmit={signIn} className="app-signin"><label>Email<input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label><button>Sign in</button>{error && <p role="alert">{error}</p>}</form>}
-  </div>{!ready ? <main><p role="status">Starting AfyaLink…</p></main> : route === '#/provider' ? <main><ProviderDashboard /></main> : <PatientApp />}</>;
+  </div>{!ready ? <main><p role="status">Starting AfyaLink…</p></main> : route === '#/provider' ? <main className="provider-main"><ProviderDashboard /></main> : <PatientApp />}</>;
 }

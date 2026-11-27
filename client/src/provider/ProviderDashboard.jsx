@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Activity,
+  BadgeCheck,
+  Building2,
+  Inbox,
+  LayoutDashboard,
+  MapPin,
+  Pill,
+  RefreshCw,
+  Tags,
+  UserRound,
+} from 'lucide-react';
 import ListingManager from './ListingManager.jsx';
 import Overview from './Overview.jsx';
 import ProfilePanel from './ProfilePanel.jsx';
@@ -16,18 +28,18 @@ import {
   respondToRequest,
   setDemoProvider,
   updateListing,
-  updateProfile
+  updateProfile,
 } from './providerApi.js';
-import { validateListingInput, validateProfileInput } from './validation.js';
+import { effectiveStatus, validateListingInput, validateProfileInput } from './validation.js';
 import './provider.css';
 
 const PAGE_SIZE = 20;
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'requests', label: 'Requests' },
-  { id: 'listings', label: 'Listings' },
-  { id: 'profile', label: 'Profile' }
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'requests', label: 'Requests', icon: Inbox, count: 'requests' },
+  { id: 'listings', label: 'Listings', icon: Tags, count: 'listings' },
+  { id: 'profile', label: 'Profile', icon: UserRound },
 ];
 
 function describeError(error) {
@@ -47,20 +59,20 @@ export default function ProviderDashboard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [refreshedAt, setRefreshedAt] = useState(null);
   const [pages, setPages] = useState({ listings: 1, requests: 1 });
   const [meta, setMeta] = useState({
     listings: { page: 1, limit: PAGE_SIZE, total: 0 },
-    requests: { page: 1, limit: PAGE_SIZE, total: 0 }
+    requests: { page: 1, limit: PAGE_SIZE, total: 0 },
   });
 
-  const load = useCallback(async ({ showLoading = true, nextPages } = {}) => {
+  const load = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) setLoading(true);
     setError('');
-    const currentPages = nextPages || pages;
     try {
       const [listingResult, requestResult] = await Promise.all([
-        loadListings({ page: currentPages.listings, limit: PAGE_SIZE }),
-        loadRequests({ page: currentPages.requests, limit: PAGE_SIZE })
+        loadListings({ page: pages.listings, limit: PAGE_SIZE }),
+        loadRequests({ page: pages.requests, limit: PAGE_SIZE }),
       ]);
       const profileResult = await loadProfile();
       setListings(listingResult.data);
@@ -68,7 +80,8 @@ export default function ProviderDashboard() {
       setMeta({ listings: listingResult.meta, requests: requestResult.meta });
       setProfile(profileResult.data || listingResult.data[0]?.provider || null);
       setProviders(isDemoMode() ? listDemoProviders() : []);
-      setNotice([...new Set([listingResult.notice, requestResult.notice].filter(Boolean))].join(' '));
+      setNotice([...new Set([listingResult.notice, requestResult.notice, profileResult.notice].filter(Boolean))].join(' '));
+      setRefreshedAt(new Date());
     } catch (failure) {
       setError(describeError(failure));
     } finally {
@@ -180,56 +193,101 @@ export default function ProviderDashboard() {
     load({ showLoading: false });
   }
 
+  const isPharmacy = profile?.type === 'pharmacy';
+  const ProviderIcon = isPharmacy ? Pill : Building2;
+  const pendingCount = requests.filter((request) => effectiveStatus(request) === 'pending').length;
+  const demo = isDemoMode();
+  const tabCounts = { requests: meta.requests.total, listings: meta.listings.total };
+
   return (
     <section className="provider-dashboard" aria-labelledby="provider-heading">
-      <div className="provider-header">
-        <div>
-          <h2 id="provider-heading">Provider workspace</h2>
-          <p className="provider-meta">{profile ? `${profile.name} · ${profile.type === 'pharmacy' ? 'Pharmacy' : 'Hospital'} · ${profile.location || 'Location not provided'}` : 'Loading provider details…'}</p>
+      <header className="provider-hero">
+        <div className="provider-hero-main">
+          <span className={`provider-avatar ${isPharmacy ? 'is-medication' : 'is-service'}`}>
+            <ProviderIcon aria-hidden="true" />
+          </span>
+          <div className="provider-hero-copy">
+            <span className="provider-eyebrow">Provider workspace</span>
+            <h2 id="provider-heading">{profile?.name || 'Provider workspace'}</h2>
+            <div className="provider-hero-meta">
+              {profile ? (
+                <span className="provider-chip"><ProviderIcon aria-hidden="true" /> {isPharmacy ? 'Pharmacy' : 'Hospital'}</span>
+              ) : null}
+              {profile?.location ? <span className="provider-chip"><MapPin aria-hidden="true" /> {profile.location}</span> : null}
+              {profile ? (
+                <span className={`provider-chip ${profile.verified ? 'provider-chip-green' : 'provider-chip-muted'}`}>
+                  <BadgeCheck aria-hidden="true" /> {profile.verified ? 'Verified' : 'Unverified'}
+                </span>
+              ) : null}
+              <span className={`provider-chip ${demo ? 'provider-chip-amber' : 'provider-chip-green'}`}>
+                <Activity aria-hidden="true" /> {demo ? 'Demo mode' : 'Live API'}
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="provider-header-actions">
+
+        <div className="provider-hero-actions">
           {providers.length > 1 ? (
-            <label className="provider-field provider-field-inline">
+            <label className="provider-hero-select">
               <span>Demo provider</span>
               <select value={profile?.id || ''} onChange={switchProvider} disabled={busy}>
                 {providers.map((entry) => <option key={entry.id} value={entry.id}>{entry.name} · {entry.type}</option>)}
               </select>
             </label>
           ) : null}
-          <button type="button" className="provider-button-secondary" onClick={() => load({ showLoading: false })} disabled={loading || busy}>Refresh</button>
+          <button type="button" className="provider-hero-button" onClick={() => load({ showLoading: false })} disabled={loading || busy}>
+            <RefreshCw aria-hidden="true" className={loading ? 'is-spinning' : undefined} /> Refresh
+          </button>
         </div>
-      </div>
+
+        <div className="provider-hero-facts">
+          <div><span>Listings</span><strong>{meta.listings.total}</strong></div>
+          <div><span>Enquiries</span><strong>{meta.requests.total}</strong></div>
+          <div><span>Pending</span><strong>{pendingCount}</strong></div>
+          <div><span>Updated</span><strong>{refreshedAt ? refreshedAt.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }) : '—'}</strong></div>
+        </div>
+      </header>
 
       {notice ? (
         <div className="provider-notice" role="status">
           <span>{notice}</span>
-          {isDemoMode() ? <button type="button" className="provider-button-secondary" onClick={resetDemo} disabled={busy}>Reset demo data</button> : null}
+          {demo ? <button type="button" className="provider-button-secondary" onClick={resetDemo} disabled={busy}>Reset demo data</button> : null}
         </div>
       ) : null}
       {error ? <div className="provider-error" role="alert">{error}</div> : null}
 
       <div className="provider-tabs" role="tablist" aria-label="Provider sections">
-        {TABS.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            role="tab"
-            id={`provider-tab-${entry.id}`}
-            aria-controls={`provider-panel-${entry.id}`}
-            aria-selected={tab === entry.id}
-            className={tab === entry.id ? 'provider-tab provider-tab-active' : 'provider-tab'}
-            onClick={() => setTab(entry.id)}
-          >
-            {entry.label}
-          </button>
-        ))}
+        {TABS.map((entry) => {
+          const Icon = entry.icon;
+          const count = entry.count ? tabCounts[entry.count] : undefined;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              id={`provider-tab-${entry.id}`}
+              aria-controls={`provider-panel-${entry.id}`}
+              aria-selected={tab === entry.id}
+              className={tab === entry.id ? 'provider-tab provider-tab-active' : 'provider-tab'}
+              onClick={() => setTab(entry.id)}
+            >
+              <Icon aria-hidden="true" />
+              <span>{entry.label}</span>
+              {typeof count === 'number' ? <span className="provider-tab-count">{count}</span> : null}
+            </button>
+          );
+        })}
       </div>
 
-      {loading ? <p role="status">Loading provider data…</p> : null}
+      {loading ? (
+        <div className="provider-skeleton-grid" role="status" aria-label="Loading provider data">
+          {[0, 1, 2, 3].map((key) => <div key={key} className="provider-skeleton-card" />)}
+        </div>
+      ) : null}
 
       {!loading && tab === 'overview' ? (
         <div role="tabpanel" id="provider-panel-overview" aria-labelledby="provider-tab-overview">
-          <Overview listings={listings} requests={requests} source={isDemoMode() ? 'demo' : 'api'} onNavigate={setTab} />
+          <Overview listings={listings} requests={requests} meta={meta} source={demo ? 'demo' : 'api'} onNavigate={setTab} />
         </div>
       ) : null}
       {!loading && tab === 'requests' ? (
@@ -260,7 +318,7 @@ export default function ProviderDashboard() {
       ) : null}
       {!loading && tab === 'profile' ? (
         <div role="tabpanel" id="provider-panel-profile" aria-labelledby="provider-tab-profile">
-          <ProfilePanel profile={profile} canEdit={isDemoMode()} busy={busy} onSave={saveProfile} />
+          <ProfilePanel profile={profile} canEdit={demo} busy={busy} onSave={saveProfile} />
         </div>
       ) : null}
     </section>

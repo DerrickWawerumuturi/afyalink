@@ -55,6 +55,33 @@ export function isStale(value, maxAgeMs = STALE_AFTER_MS, now = Date.now()) {
   return now - time > maxAgeMs;
 }
 
+export function relativeTime(value, now = Date.now()) {
+  if (!value) return 'Unknown';
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return 'Unknown';
+  const diff = now - time;
+  const minutes = Math.round(Math.abs(diff) / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ${diff >= 0 ? 'ago' : 'from now'}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ${diff >= 0 ? 'ago' : 'from now'}`;
+  const days = Math.round(hours / 24);
+  return `${days}d ${diff >= 0 ? 'ago' : 'from now'}`;
+}
+
+export function expiresIn(value, now = Date.now()) {
+  if (!value) return 'No expiry';
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return 'No expiry';
+  const diff = time - now;
+  if (diff <= 0) return 'Expired';
+  const minutes = Math.ceil(diff / 60000);
+  if (minutes < 60) return `${minutes}m left`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours}h ${remainder}m left` : `${hours}h left`;
+}
+
 export function validateProfileInput(input) {
   const errors = {};
   const name = String(input.name || '').trim();
