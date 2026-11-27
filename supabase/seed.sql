@@ -1,0 +1,2 @@
+-- Synthetic data seed placeholder. Dev 2 adds fictional records after the schema exists.
+-- Do not insert real patients, prescriptions, contact details, credentials or provider claims.

@@ -1,0 +1,11 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+const app = express();
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+app.use(express.json({ limit: '32kb' }));
+app.get('/api/health', (_request, response) => response.json({ data: { status: 'ok', service: 'afyalink-api' } }));
+app.use((_request, response) => response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not implemented' } }));
+app.use((error, _request, response, _next) => { const status = error.type === 'entity.parse.failed' ? 400 : error.type === 'entity.too.large' ? 413 : 500; response.status(status).json({ error: { code: status === 500 ? 'INTERNAL_ERROR' : 'INVALID_BODY', message: status === 500 ? 'Unexpected server error' : 'Invalid JSON body or body too large' } }); });
+const port = process.env.PORT || 5000;
+app.listen(port, () => console.log(`AfyaLink API listening on port ${port}`));
