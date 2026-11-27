@@ -202,7 +202,7 @@ export default function ListingManager({ listings, catalog, providerType, busy, 
       <ConfirmationDialog
         open={Boolean(pendingRemove)}
         title="Remove listing"
-        description={pendingRemove ? `Remove ${listingName(pendingRemove)} at ${formatKes(pendingRemove.price)} per ${pendingRemove.pricing_unit}? This cannot be undone in the demo.` : ''}
+        description={pendingRemove ? `Remove ${listingName(pendingRemove)} at ${formatKes(pendingRemove.price)} per ${pendingRemove.pricing_unit}? This cannot be undone. Listings with request history may be protected by the API.` : ''}
         confirmLabel="Remove listing"
         onConfirm={confirmRemove}
         onCancel={() => setPendingRemove(null)}

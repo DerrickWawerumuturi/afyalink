@@ -252,7 +252,7 @@ export default function ProviderDashboard() {
             catalog={catalog}
             providerType={profile?.type}
             busy={busy}
-            canRemove={isDemoMode()}
+            canRemove
             meta={meta.listings}
             onPageChange={(page) => changePage('listings', page)}
             onSave={saveListing}

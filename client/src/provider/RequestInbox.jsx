@@ -96,7 +96,7 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
             const draft = draftFor(request);
             const requestErrors = errors[request.id] || {};
             const detail = itemDetail(request);
-            const stale = isStale(request.listing?.updated_at);
+            const stale = Boolean(request.listing?.updated_at) && isStale(request.listing.updated_at);
 
             return (
               <li key={request.id} className="provider-request">
@@ -110,7 +110,7 @@ export default function RequestInbox({ requests, busy, meta, onPageChange, onRes
                   <span className={`provider-badge provider-badge-${status}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
                 </div>
 
-                <p className="provider-meta">Expires {formatTimestamp(request.expires_at)}</p>
+                {request.expires_at ? <p className="provider-meta">Expires {formatTimestamp(request.expires_at)}</p> : null}
                 {request.request_group_id ? <p className="provider-meta">Linked enquiry group: {request.request_group_id}</p> : null}
                 {stale ? <p className="provider-meta">Listing data was last updated {formatTimestamp(request.listing?.updated_at)} and needs review.</p> : null}
 

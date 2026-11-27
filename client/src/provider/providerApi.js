@@ -168,8 +168,17 @@ export async function updateListing(id, value) {
 }
 
 export async function deleteListing(id) {
-  if (!demoMode) throw unsupported('Listing removal needs a DELETE /api/provider/listings/:id route from the API owner.');
-  return { data: demoRemoveListing(id), notice: 'Demo listing removed locally.' };
+  if (!demoMode) {
+    try {
+      const payload = await api(`/provider/listings/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      return { data: payload.data, notice: '' };
+    } catch (error) {
+      if (!canUseDemo(error)) throw error;
+      demoMode = true;
+      return { data: demoRemoveListing(id), notice: demoNotice(error) };
+    }
+  }
+  return { data: demoRemoveListing(id), notice: '' };
 }
 
 export async function updateProfile(value) {
