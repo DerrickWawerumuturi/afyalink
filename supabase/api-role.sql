@@ -50,6 +50,12 @@ grant insert (listing_id, patient_user_id, request_group_id, quantity, status, e
 grant update (status, confirmed_price, expires_at, updated_at)
   on public.requests to afyalink_api;
 
+grant select on public.appointments to afyalink_api;
+grant insert (listing_id, patient_user_id, requested_for, status, notes)
+  on public.appointments to afyalink_api;
+grant update (status, notes, requested_for, updated_at)
+  on public.appointments to afyalink_api;
+
 alter role afyalink_api set search_path = public;
 
 -- Explicit RLS policies for the API role. Ownership is enforced in Express;
@@ -72,4 +78,8 @@ create policy listings_api_access on public.listings
 
 drop policy if exists requests_api_access on public.requests;
 create policy requests_api_access on public.requests
+  for all to afyalink_api using (true) with check (true);
+
+drop policy if exists appointments_api_access on public.appointments;
+create policy appointments_api_access on public.appointments
   for all to afyalink_api using (true) with check (true);

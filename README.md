@@ -20,6 +20,8 @@ The product combines CareCheck (confirm hospital services before travel) and Med
 
 A successful demo persists a request, confirms it through the correct provider account and shows the resulting confirmed price and expiry to the requesting demo patient. Declines, expired confirmations, empty results, loading and API failures must be visible. Confirmation is an enquiry, not a booking, prescription, payment or stock reservation.
 
+Appointments extend the service journey: an authenticated patient can request a future appointment for an available service, then track it as requested, confirmed, declined or cancelled. A provider confirms or declines from the dashboard. An appointment request is not a payment or guaranteed booking, and it does not reserve stock.
+
 Stretch: compare a whole synthetic prescription and add service + medication + manually entered transport estimates. Incomplete baskets must show missing items and must never be ranked as cheaper complete prescriptions. Insurance/SHA coverage, payments, delivery, maps, AI/OCR prescription uploads, clinical advice and advanced analytics are outside the MVP.
 
 ## Stack and architecture
@@ -85,6 +87,7 @@ Use UUID primary keys, `timestamptz` stored in UTC, KES prices as non-negative `
 | `listings` | `id`, `provider_id` FK, `item_id` FK, `price`, `currency` fixed KES, `pricing_unit`, `available`, nullable non-negative integer `stock_quantity`, `updated_at`; unique provider/item/pricing-unit |
 | `requests` | `id`, `listing_id` FK, `patient_user_id` FK to auth.users, nullable `request_group_id` UUID, positive integer `quantity`, `status`, nullable `confirmed_price`, `expires_at`, timestamps |
 | `provider_memberships` | `user_id` FK to auth.users, `provider_id` FK, unique pair; assigned by trusted setup only |
+| `appointments` | `id`, `listing_id` FK, `patient_user_id` FK to auth.users, `requested_for` timestamptz, status requested/confirmed/declined/cancelled, optional notes, timestamps |
 
 The four core domain tables are supplemented by provider membership for authorization. A patient may only read their own requests. A provider member may manage listings and respond to requests belonging to that provider. Derive identity and provider scope from a validated session and membership; never trust a submitted user or provider ID as authorization.
 
@@ -102,6 +105,10 @@ The server implements the routes below; details, examples, errors and authorizat
 | POST | `/api/compare` | Compare an exact synthetic basket across providers |
 | POST | `/api/requests` | Authenticated patient creates a confirmation enquiry |
 | GET | `/api/requests/:id` | Patient reads their own enquiry |
+| POST / GET | `/api/appointments` | Patient books or lists appointments |
+| PATCH | `/api/appointments/:id` | Patient cancels an appointment |
+| GET | `/api/provider/appointments` | Provider reads incoming appointments |
+| PATCH | `/api/provider/appointments/:id` | Provider confirms or declines an appointment |
 | GET | `/api/provider/profile` | Provider reads its own trusted profile |
 | GET / POST | `/api/provider/listings` | Provider lists/creates its own offerings |
 | PATCH | `/api/provider/listings/:id` | Provider updates its own offering |

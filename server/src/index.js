@@ -6,6 +6,7 @@ import { closePool } from './db/pool.js';
 import listingsRouter from './routes/listings.js';
 import compareRouter from './routes/compare.js';
 import requestsRouter from './routes/requests.js';
+import appointmentsRouter from './routes/appointments.js';
 import providerRouter from './routes/provider.js';
 
 const app = express();
@@ -23,6 +24,7 @@ app.get('/api/health', (_request, response) =>
 app.use('/api', listingsRouter);
 app.use('/api', compareRouter);
 app.use('/api', requestsRouter);
+app.use('/api', appointmentsRouter);
 app.use('/api/provider', providerRouter);
 
 app.use((_request, response) =>

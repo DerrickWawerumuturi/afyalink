@@ -121,6 +121,8 @@ insert into public.provider_memberships (user_id, provider_id) values
 
 A provider user with more than one membership must send `x-provider-id` on provider routes.
 
+For synthetic sign-ups, the hosted development project has email confirmations disabled (`auth.email.enable_confirmations = false`). Sign-up therefore returns a session immediately. Never carry this setting into production, and do not use real email addresses or patient data.
+
 ## Seed contents
 
 | Table | Rows |

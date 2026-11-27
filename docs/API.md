@@ -51,6 +51,14 @@ Insufficient stock or unavailable items are missing. For partial options, `compl
 
 `GET /requests/:id`: only the creating patient; same data shape. Compute effective expired state on read if expiry has passed. Repeated submission creates a separate enquiry; client disables double-submit while in flight. Add idempotency before real deployment.
 
+## Patient appointments
+
+`POST /appointments` authenticated patient: `{"listing_id":"...UUID...","requested_for":"2026-11-28T09:00:00Z","notes":"Optional note"}`. Services only; the listing must be available, and the requested time must be in the future and within 90 days. Creates status `requested` and returns 201 with provider, item and listing details. An appointment is a request, not a guaranteed booking.
+
+`GET /appointments`: the authenticated patient's own appointments (maximum 100), ordered by requested time. `GET /appointments/:id`: own appointment only, 404 for another patient.
+
+`PATCH /appointments/:id`: `{"status":"cancelled"}` only. Requested or confirmed appointments can be cancelled; terminal states return 409. Another patient's appointment returns 404.
+
 ## Provider profile
 
 `GET /provider/profile`: authenticated provider member. Returns the trusted provider record:
@@ -78,6 +86,12 @@ Type and verification are controlled by trusted setup, not user-editable metadat
 `PATCH /provider/requests/:id`: confirm body `{"status":"confirmed","confirmed_price":1200,"expires_at":"2026-11-27T11:00:00Z"}` or decline `{"status":"declined"}`. Confirmed price is a unit price. Validate future expiry (maximum 24 hours), finite non-negative price and pending/unexpired starting state. A decline cannot contain confirmation fields. Respond with updated request.
 
 Use a transaction/conditional update for pending → confirmed/declined. Expired, declined or already confirmed transitions return 409. Snapshot confirmed price; changes to listing price must not change existing quotes. No reservation or payment is performed.
+
+## Provider appointments
+
+`GET /provider/appointments?status=requested&page=1&limit=20`: scoped paginated appointment records with provider/item/listing details. Do not expose patient contact details beyond the authenticated user identity.
+
+`PATCH /provider/appointments/:id`: `{"status":"confirmed"}` or `{"status":"declined"}`. Only `requested` appointments can transition; terminal states and other providers' appointments return 409/404. Confirmation is not a payment or stock reservation.
 
 ## Integration checks
 
