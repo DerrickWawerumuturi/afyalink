@@ -1,6 +1,6 @@
 # AfyaLink API contract v0.1
 
-Base URL: `/api`. Only `/health` is implemented in the initial shell. All other endpoints below are the target contract for the three developers.
+Base URL: `/api`. All routes below are implemented; authorization, validation and examples are the implementation contract.
 
 ## Conventions
 
