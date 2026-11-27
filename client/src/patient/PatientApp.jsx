@@ -145,11 +145,7 @@ function Home() {
         </div>
         <div className="home-search"><Finder /><p className="home-disclosure">Synthetic demo data · Prices are estimates until confirmed</p></div>
       </div>
-      <div className="home-pathways">
-        <div className="pathways-heading"><span>FIND YOUR WAY TO CARE</span><h2>Two ways to start.</h2></div>
-        <Link className="pathway service-path" to="/services"><span className="pathway-number">01 / MEDICAL SERVICES</span><strong>Find care<br />with confidence.</strong><p>Explore services and compare estimated prices before you travel.</p><span className="pathway-action">Explore medical services <ArrowRight /></span><span className="pathway-art pathway-art-service" aria-hidden="true"><span>ULTRASOUND</span><b>Compare care</b><small>PRICE · LOCATION · AVAILABILITY</small></span></Link>
-        <Link className="pathway medicine-path" to="/medicines"><span className="pathway-number">02 / MEDICATIONS</span><strong>Your prescription,<br />made clearer.</strong><p>See the estimated cost of your medications at different pharmacies.</p><span className="pathway-action">Compare medications <ArrowRight /></span><span className="pathway-art pathway-art-medicine" aria-hidden="true"><span>YOUR PRESCRIPTION</span><b>Compare costs</b><small>ONE LIST · MORE OPTIONS</small></span></Link>
-      </div>
+
     </div>
   );
 }
